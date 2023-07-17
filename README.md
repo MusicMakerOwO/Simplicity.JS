@@ -12,7 +12,7 @@ const client = new Client({
     intents: [
         "YOUR INTENTS HERE"
     ],
-    maxCacheSize: 1000
+    maxCacheSize: 1000 // optional, default is 100
 });
 
 
