@@ -1,0 +1,27 @@
+{
+  "name": "@musicmaker/simplicity",
+  "version": "1.0.1",
+  "description": "The last package you will ever need - What Discord.JS has failed to do",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MusicMakerOwO/Simplicity.JS.git#main"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js"
+  ],
+  "author": "musicmaker",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MusicMakerOwO/Simplicity.JS/issues"
+  },
+  "homepage": "https://github.com/MusicMakerOwO/Simplicity.JS/tree/main#readme",
+  "dependencies": {
+    "ws": "^8.13.0"
+  }
+}
