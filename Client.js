@@ -52,7 +52,7 @@ module.exports = class Client extends Events {
 
         this.emit('debug', 'Logging in...');
         this.startTimestamp = Date.now();
-
+        
         await this.API.login(token);
 
         this.emit('debug', 'Logged in');
@@ -105,6 +105,9 @@ Example: new Client({\x1b[1m intents: ["guilds", "guildMessages"] \x1b[0m})`);
     if (options.API_METHOD) {
         if (typeof options.API_METHOD !== 'string') throw new TypeError('Client API method must be a string, received ' + typeof options.API_METHOD);
         options.API_METHOD = options.API_METHOD.toLowerCase();
-        if (/^(https?)|rest/i.test(options.API_METHOD)) Logs.warn('Client API method must be either "https" or "rest" - Using default: REST');
+        if (!['http', 'https', 'rest'].includes(options.API_METHOD)) {
+            Logs.warn('Client API method must be HTTPS or REST - Using default: REST');
+            options.API_METHOD = 'rest';
+        }
     }
 }

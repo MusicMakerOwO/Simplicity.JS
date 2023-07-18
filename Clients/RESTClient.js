@@ -1,12 +1,13 @@
 const OPCodes = require('../Constants/OPCodes.js');
 const ws = require('ws');
 const Queue = require('../DataStructures/Queue.js');
-const Logs = require('../Utils/Logs.js');
+const Log = require('../Utils/Logs.js');
 const Format = require('../Utils/Format.js');
 const EventHandler = require('../Utils/EventHandler.js');
 const HTTPS = require('node:https');
+const GatewayErrors = require('../Constants/GatewayErrors.js');
 
-module.exports = class HTTPManager {
+module.exports = class RESTManager {
     constructor(client) {
         this.client = client;
 
@@ -143,10 +144,21 @@ module.exports = class HTTPManager {
 
             this.connected = false;
 
-            if (code === 4001) {
-                Logs.error(`Discord has terminated this connection with ${code}.`);
-                Logs.error(`If you see this, please report it to the Simplicity Support server.`);
+            let error = GatewayErrors[code];
+            if (!error) error = 'Unknown error';
+
+            // split on each line and print them
+            const lines = error.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                // if the last line, throw it as an error
+                if (i === lines.length - 1) {
+                    Log.error( new Error(lines[i]).stack.replace('Error: ', '') );
+                } else {
+                    Log.error(lines[i]);
+                }
             }
+
+            
 
             // Kill the connection and exit
             process.exit(1);
@@ -202,6 +214,117 @@ module.exports = class HTTPManager {
                 return reject(err);
             });
         });
-        
     }
-}
+
+
+
+    getBulk(route) {
+        if (!this.connected) throw new Error('Client is not connected');
+
+        if (this._rateLimitUntil > Date.now()) {
+            return null;
+        }
+
+        return new Promise((resolve, reject) => {
+            HTTPS.get(`https://discord.com/api/v10${route}?limit=1000`, {
+                headers: {
+                    "Authorization": `Bot ${this.client._token}`,
+                },
+                method: 'GET'
+            }, (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', async () => {
+                    if (res.statusCode !== 200) {
+                        this.#emitError(`Received ${res.statusCode} from ${route}`);
+                        this.#emitError(data);
+                        return reject(data);
+                    }
+                    this.#emitDebug(`Received ${res.statusCode} from ${route}`);
+                    this.#emitRaw(data);
+
+                    let d = {};
+                    try {
+                        d = JSON.parse(data);
+                    } catch (err) {
+                        this.#emitError(err.stack);
+                        return reject(err);
+                    }
+
+                    for (const member of d) {
+                        // copy member.user to member
+                        for (const key in member.user) {
+                            member[key] = member.user[key];
+                        }
+                    }
+
+                    return resolve(d);
+                })
+            }, (err) => {
+                this.#emitError(err.stack);
+                return reject(err);
+            });
+        });
+    }
+
+
+
+    async post(route, data) {
+        if (!this.connected) throw new Error('Client is not connected');
+
+        if (this._rateLimitUntil > Date.now()) {
+            return null;
+        }
+
+        return new Promise((resolve, reject) => {
+            // https post request
+            const req = HTTPS.request(`https://discord.com/api/v10${route}`, {
+                headers: {
+                    "Authorization": `Bot ${this.client._token}`,
+                    "Content-Type": "application/json"
+                },
+                method: 'POST',
+            }, (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', async () => {
+                    if (res.statusCode !== 200) {
+                        this.#emitError(`Received ${res.statusCode} from ${route}`);
+                        this.#emitError(data);
+                        return reject(data);
+                    }
+                    this.#emitDebug(`Received ${res.statusCode} from ${route}`);
+                    this.#emitRaw(data);
+
+                    let d = {};
+                    try {
+                        d = JSON.parse(data);
+                    } catch (err) {
+                        this.#emitError(err.stack);
+                        return reject(err);
+                    }
+
+                    return resolve(d);
+                })
+            });
+
+            req.on('error', (err) => {
+                this.#emitError(err.stack);
+                return reject(err);
+            });
+
+            req.write(JSON.stringify(data));
+            req.end();
+        });
+    }
+
+
+};

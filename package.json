@@ -1,6 +1,6 @@
 {
   "name": "@musicmaker/simplicity",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "The last package you will ever need - What Discord.JS has failed to do",
   "main": "index.js",
   "scripts": {

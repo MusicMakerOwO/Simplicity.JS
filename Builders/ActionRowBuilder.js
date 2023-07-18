@@ -55,4 +55,8 @@ module.exports = class ActionRowBuilder {
         return data;
 
     }
+
+    build() {
+        return this.toJSON();
+    }
 }

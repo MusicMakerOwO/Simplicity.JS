@@ -34,6 +34,11 @@ module.exports = class ButtonBuilder {
         this.style = styles[style.toLowerCase()];
         return this;
     }
+    
+    setColor(color) {
+        this.setStyle(color);
+        return this;
+    }
 
     setLabel(label) {
         if (typeof label !== 'string') throw new Error('Label must be a string - Received: ' + typeof label);
@@ -43,11 +48,6 @@ module.exports = class ButtonBuilder {
     }
 
     setID(id) {
-        this.setCustomID(id);
-        return this;
-    }
-
-    customID(id) {
         this.setCustomID(id);
         return this;
     }

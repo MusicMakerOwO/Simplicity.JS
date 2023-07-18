@@ -35,7 +35,9 @@ const log = {
     },
     debug: (message = '') => {
         console.debug(`${color.green}[${timestamp()}]${color.reset} ${message}`);
-    }
+    },
+    color,
+    timestamp
 }
 
 module.exports = log;

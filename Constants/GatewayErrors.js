@@ -29,5 +29,5 @@ module.exports = {
     4011: 'Your bot is in more than 2,500 servers, sharding is required to connect due to Discord.',
     4012: 'Invalid API version - Report this to the Simplicity Support server if it continues!',
     4013: 'Invalid intent(s) - I am impressed if you managed to get this one...',
-    4014: 'It seems you are using intents that Discord has not allowed you to use. (message content, guild members, or guild presences)'
+    4014: 'It seems you are using intents that Discord has not allowed you to use.\n(message content, guild members, or guild presence/status)'
 }

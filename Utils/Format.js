@@ -91,8 +91,8 @@ async function message(client, msg) {
     }
     */
 
-    msg.channel = await client.channels.get(msg.channel_id);
-    msg.guild = await client.guilds.get(msg.guild_id);
+    msg.channel = channel( client, await client.channels.get(msg.channel_id) );
+    msg.guild = guild( client, await client.guilds.get(msg.guild_id) )
 
     msg.timestamp = new Date(msg.timestamp);
     if (msg.referenced_message) msg.referenced_message.timestamp = new Date(msg.referenced_message.timestamp);
@@ -121,4 +121,71 @@ async function message(client, msg) {
     }
 
     return msg;
+}
+
+
+
+
+function guild (client, guild) {
+
+    guild.members = {
+        get: async (id = '') => {
+            return await client.API.getBulk(`/guilds/${guild.id}/members/${id}`);
+        },
+        all: async () => {
+            return await client.API.getBulk(`/guilds/${guild.id}/members`);
+        },
+        random: async () => {
+            let members = await client.API.getBulk(`/guilds/${guild.id}/members`);
+            return members[Math.floor(Math.random() * members.length)];
+        },
+        count: () => {
+            return guild.member_count;
+        }
+    }
+
+    return guild;
+    
+}
+
+
+
+
+function channel (client, channel) {
+
+    /*
+    message.channel.send('Pong!');
+    message.channel.send({ content: 'Pong!' });
+    message.channel.send({ content: "Pong!", embeds: [embed] });
+    */
+
+    channel.send = async (content) => {
+        switch (typeof content) {
+            case 'string':
+                return await client.API.post(`/channels/${channel.id}/messages`, { content });
+            case 'object':
+                
+                for (const key in content) {
+                    const items = content[key];
+                    if (!Array.isArray(items)) continue;
+                    
+                    const updatedItems = [];
+                    for (const item of items) {
+                        if (typeof item.build === 'function') {
+                            const result = await item.build();
+                            updatedItems.push(result);
+                        }
+                    }
+                    
+                    content[key] = updatedItems;
+                }
+
+                return await client.API.post(`/channels/${channel.id}/messages`, content);
+            default:
+                return await client.API.post(`/channels/${channel.id}/messages`, { content: `${content}` });
+        }
+    }
+
+    return channel;
+
 }

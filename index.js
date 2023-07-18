@@ -5,8 +5,13 @@ exports.Utils = require('./Utils/UtilsLoader.js')();
 exports.Log = require('./Utils/Logs.js');
 exports.ClosestMatch = require('./Utils/ClosestMatch.js');
 
-exports.ActionRowBuilder = require('./Builders/ActionRowBuilder.js');
-exports.EmbedBuilder = require('./Builders/EmbedBuilder.js');
-exports.ButtonBuilder = require('./Builders/ButtonBuilder.js');
-exports.SelectMenuBuilder = require('./Builders/SelectMenuBuilder.js');
-exports.SlashCommandBuilder = require('./Builders/SlashCommandBuilder.js');
+exports.ActionRow = require('./Builders/ActionRowBuilder.js');
+exports.Embed = require('./Builders/EmbedBuilder.js');
+exports.Button = require('./Builders/ButtonBuilder.js');
+exports.SelectMenu = require('./Builders/SelectMenuBuilder.js');
+exports.SlashCommand = require('./Builders/SlashCommandBuilder.js');
+
+exports.LinkedList = require('./DataStructures/LinkedList.js');
+exports.Queue = require('./DataStructures/Queue.js');
+exports.SizeLimitedMap = require('./DataStructures/SizeLimitedMap.js');
+
