@@ -43,10 +43,14 @@ module.exports = {
     memberUpdate: 'guildMemberUpdate',
     guildMemberUpdate: 'guildMemberUpdate',
 
-
     channelCreate: 'channelCreate',
     channelDelete: 'channelDelete',
-    channelUpdate: 'channelUpdate'
+    channelUpdate: 'channelUpdate',
+
+    userVoiceJoin: 'userVoiceJoin',
+    memberVoiceJoin: 'userVoiceJoin',
+    userVoiceLeave: 'userVoiceLeave',
+    memberVoiceLeave: 'userVoiceLeave'
 };
 
 /*

@@ -24,6 +24,12 @@ module.exports = class BaseCache {
         throw new Error('This method is not implemented.');
     }
 
+    random() {
+        let keys = [...this.cache.keys()];
+        let randomKey = keys[Math.floor(Math.random() * keys.length)];
+        return this.cache.get(randomKey);
+    }
+
     find(fn) {
         if (typeof fn !== 'function') throw new TypeError('Function must be a function.');
 
@@ -31,6 +37,8 @@ module.exports = class BaseCache {
         for (let [key, value] of this.cache) {
             if (fn(value)) results.set(key, value);
         }
+
+        return results;
     }
 
     filter(fn) {

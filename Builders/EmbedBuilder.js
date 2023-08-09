@@ -55,10 +55,10 @@ module.exports = class EmbedBuilder {
         this.embed = {
             title: undefined,
             type: 'rich',
-            description: undefined,
+            description: '\u200b', // '\u200b' is a zero-width space
             url: undefined,
             timestamp: undefined,
-            color: undefined,
+            color: ~~(Math.random() * 0xffffff),
             footer: undefined,
             image: undefined,
             thumbnail: undefined,
@@ -67,6 +67,7 @@ module.exports = class EmbedBuilder {
             author: undefined,
             fields: []
         }
+        this.maxFieldError = false;
     }
 
     setTitle(title) {
@@ -338,21 +339,22 @@ module.exports = class EmbedBuilder {
     .addFields("Regular field title", "Some value here")
     */
 
-    addField(...field) {
-        return this.addFields(...field);
+    addField (...fields) {
+        return this.addFields(...fields);
     }
 
-    setFields(...fields) {
+    setFields (...fields) {
         this.embed.fields = [];
         return this.addFields(...fields);
     }
 
+    setField (...fields) {
+        return this.setFields(...fields);
+    }
 
     addFields(...fields) {
 
-        if (fields.length === 0) return;
-
-        if (this.embed.fields.length + fields.length > 25) throw new RangeError('Embeds cannot have more than 25 fields');
+        if (fields.length === 0) return this;
 
         let fieldObject = {
             name: '\u200b',
@@ -370,6 +372,14 @@ module.exports = class EmbedBuilder {
             fieldObject.name = fields[0] || '\u200b';
             fieldObject.value = fields[1] || '\u200b';
             fieldObject.inline = fields[2] || false;
+
+            if (this.embed.fields.length + 1 > 25) {
+                if (!this.maxFieldError) {
+                    console.error( new Error('Embeds cannot have more than 25 fields').stack );
+                    this.maxFieldError = true;
+                }
+                return this;
+            }
 
             this.embed.fields.push(fieldObject);
             return this;
@@ -410,6 +420,14 @@ module.exports = class EmbedBuilder {
             fieldObject.name = field.name || '\u200b';
             fieldObject.value = field.value || '\u200b';
             fieldObject.inline = field.inline || false;
+
+            if (this.embed.fields.length + 1 > 25) {
+                if (!this.maxFieldError) {
+                    console.error( new Error('Embeds cannot have more than 25 fields').stack );
+                    this.maxFieldError = true;
+                }
+                return this;
+            }
             
             this.embed.fields.push(fieldObject);
         }
