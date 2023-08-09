@@ -1,5 +1,11 @@
+const GuildMembers = require('../Helpers/GuildMembers.js');
+const MemberRoles = require('../Helpers/MemberRoles.js');
+
 module.exports = {
     message,
+    guild,
+    channel,
+    member
 }
 
 
@@ -91,8 +97,11 @@ async function message(client, msg) {
     }
     */
 
-    msg.channel = channel( client, await client.channels.get(msg.channel_id) );
-    msg.guild = guild( client, await client.guilds.get(msg.guild_id) )
+    msg.channel = await channel( client, await client.channels.get(msg.channel_id) );
+    msg.guild = await guild( client, await client.guilds.get(msg.guild_id) )
+    msg.member = await member( client, await client.members.get(msg.guild_id, msg.author.id), msg.guild_id );
+    msg.user = msg.author;
+    msg.author = await client.users.get(msg.author.id);
 
     msg.timestamp = new Date(msg.timestamp);
     if (msg.referenced_message) msg.referenced_message.timestamp = new Date(msg.referenced_message.timestamp);
@@ -126,32 +135,15 @@ async function message(client, msg) {
 
 
 
-function guild (client, guild) {
-
-    guild.members = {
-        get: async (id = '') => {
-            return await client.API.getBulk(`/guilds/${guild.id}/members/${id}`);
-        },
-        all: async () => {
-            return await client.API.getBulk(`/guilds/${guild.id}/members`);
-        },
-        random: async () => {
-            let members = await client.API.getBulk(`/guilds/${guild.id}/members`);
-            return members[Math.floor(Math.random() * members.length)];
-        },
-        count: () => {
-            return guild.member_count;
-        }
-    }
-
+async function guild (client, guild) {
+    guild.members = new GuildMembers(client, guild, await client.members.get(guild.id));
     return guild;
-    
 }
 
 
 
 
-function channel (client, channel) {
+async function channel (client, channel) {
 
     /*
     message.channel.send('Pong!');
@@ -159,7 +151,7 @@ function channel (client, channel) {
     message.channel.send({ content: "Pong!", embeds: [embed] });
     */
 
-    channel.send = async (content) => {
+    channel.send = async function (content) {
         switch (typeof content) {
             case 'string':
                 return await client.API.post(`/channels/${channel.id}/messages`, { content });
@@ -171,7 +163,7 @@ function channel (client, channel) {
                     
                     const updatedItems = [];
                     for (const item of items) {
-                        if (typeof item.build === 'function') {
+                        if (typeof item?.build === 'function') {
                             const result = await item.build();
                             updatedItems.push(result);
                         }
@@ -188,4 +180,18 @@ function channel (client, channel) {
 
     return channel;
 
+}
+
+
+
+async function member (client, member, guildID) {
+    let roles = [];
+    for (const role of member.roles) {
+        roles.push(await client.roles.get(role));
+    }
+
+    member.guildID = guildID;
+    member.roles = new MemberRoles(roles, member, client);
+
+    return member;
 }

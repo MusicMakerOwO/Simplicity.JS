@@ -7,6 +7,7 @@ const styles = {
 
     blue: 1,
     grey: 2,
+    gray: 2,
     green: 3,
     red: 4,
     url: 5,
@@ -18,19 +19,29 @@ const styles = {
     5: 5
 }
 
+const ClosestMatch = require('../Utils/ClosestMatch');
+const Log = require('../Utils/Logs.js');
+
 module.exports = class ButtonBuilder {
     constructor() {
         this.type = 2;
         this.style = 2;
         this.label = '\u200b';
-        this.custom_id = 'null';
+        this.custom_id = Math.random().toString(36).substring(2, 15);
         this.disabled = false;
         this.url = "https://discord.com/";
         this.emoji = null;
     }
 
-    setStyle(style) {
-        if (!styles[style.toLowerCase()]) throw new Error('Invalid style, use one of the following: ' + Object.keys(styles).slice(0, 10).join(', '));
+    setStyle(style = 'gray') {
+        if (typeof style !== 'string') throw new Error('Style must be a string - Received: ' + typeof style);
+
+        if (!styles[style.toLowerCase()]) {
+            let closest = ClosestMatch(style.toLowerCase(), Object.keys(styles));
+            Log.warn(`Invalid button style "${style}" - Using closest match: "${closest}"`);
+            style = closest;
+        }
+
         this.style = styles[style.toLowerCase()];
         return this;
     }
@@ -55,6 +66,7 @@ module.exports = class ButtonBuilder {
     setCustomID(id) {
         if (typeof id !== 'string') throw new Error('Custom ID must be a string - Received: ' + typeof id);
         if (id.length > 100) throw new Error('Custom ID must be under 100 characters');
+        if (/[\w\-_]{1,100}/.test(id) === false) throw new Error('Custom ID can only contain letters, numbers, underscores, and dashes');
         this.custom_id = id;
         return this;
     }
