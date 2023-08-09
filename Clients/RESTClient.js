@@ -6,6 +6,7 @@ const Format = require('../Utils/Format.js');
 const EventHandler = require('../Utils/EventHandler.js');
 const HTTPS = require('node:https');
 const GatewayErrors = require('../Constants/GatewayErrors.js');
+const ErrorCodes = require('../Constants/ErrorCodes.js');
 
 module.exports = class RESTManager {
     constructor(client) {
@@ -24,7 +25,7 @@ module.exports = class RESTManager {
         this.connected = false;
         this.connectedAt = null;
 
-        this._WebSocket = null;
+        this.websocket = null;
     }
 
     #emitRaw(data) {
@@ -43,20 +44,47 @@ module.exports = class RESTManager {
         this.client.emit('warn', warning);
     }
 
+    #sendError(data) {
+        let d = null;
+        try {
+            d = JSON.parse(data);
+        } catch (err) {
+            this.#emitError(err.stack);
+        }
+        
+        this.#emitError(d || data);
+
+        let error = ErrorCodes[d.code];
+        if (!error) error = 'Unknown error';
+
+        Log.error(JSON.stringify(d, null, 4));
+
+        const lines = error.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            if (i === lines.length - 1) {
+                Log.error( new Error(lines[i]).stack.replace('Error: ', '') );
+            } else {
+                Log.error(lines[i]);
+            }
+        }
+
+        return null;
+    }
+
 
 
     async login(token) {
 
         this.#emitDebug('Logging in...');
 
-        this._WebSocket = new ws('wss://gateway.discord.gg/?v=10&encoding=json');
+        this.websocket = new ws('wss://gateway.discord.gg/?v=10&encoding=json');
 
-        this._WebSocket.on('open', () => {
+        this.websocket.on('open', () => {
             this.connected = true;
-            this.#emitDebug('Opened this._WebSocket');
+            this.#emitDebug('Opened this.websocket');
         });
 
-        this._WebSocket.on('message', async (data) => {
+        this.websocket.on('message', async (data) => {
             this.#emitRaw( JSON.parse( data.toString() ) );
 
             data = JSON.parse(data.toString());
@@ -65,7 +93,7 @@ module.exports = class RESTManager {
                 case OPCodes.HELLO:
                     this.#emitDebug('Received HELLO');
 
-                    this._WebSocket.send(JSON.stringify({
+                    this.websocket.send(JSON.stringify({
                         op: OPCodes.IDENTIFY,
                         d: {
                             token: this.client._token,
@@ -80,7 +108,7 @@ module.exports = class RESTManager {
                     this._seq = data.d;
                     setInterval(() => {
                         this.#emitDebug('Sending HEARTBEAT');
-                        this._WebSocket.send(JSON.stringify({
+                        this.websocket.send(JSON.stringify({
                             op: OPCodes.HEARTBEAT,
                             d: this._seq
                         }));
@@ -107,40 +135,67 @@ module.exports = class RESTManager {
                             if (Date.now() - this.client.startTimestamp < 5000) {
                                 this.client.guilds.set(data.d.id, data.d);
                                 for (const channel of data.d.channels) {
-                                    this.client.channels.set(channel.id, channel);
+                                    this.client.channels.set(channel.id,
+                                        Object.assign(channel, { guildID: data.d.id })
+                                    );
                                 }
                                 for (const emoji of data.d.emojis) {
-                                    this.client.emojis.set(emoji.id, emoji);
+                                    this.client.emojis.set(emoji.id,
+                                        Object.assign(emoji, { guildID: data.d.id })
+                                    );
                                 }
                                 for (const role of data.d.roles) {
-                                    this.client.roles.set(role.id, role);
+                                    this.client.roles.set(role.id,
+                                        Object.assign(role, { guildID: data.d.id })
+                                    );
                                 }
                                 for (const sticker of data.d.stickers) {
-                                    this.client.stickers.set(sticker.id, sticker);
+                                    this.client.stickers.set(sticker.id,
+                                        Object.assign(sticker, { guildID: data.d.id })
+                                    );
+                                }
+                                // if they have members intent, get all members
+                                if (this.client.intents & (1 << 8)) {
+                                    try {
+                                        let members = this.getBulk(`/guilds/${data.d.id}/members`);
+                                        for (const member of members) {
+                                            this.client.members.set(member.id,
+                                                Object.assign(member, { guildID: data.d.id })
+                                            );
+                                        }
+                                    } catch (err) {
+                                        this.#emitError(err.stack);
+                                    }
                                 }
                                 return;
                             }
                             return this.client.emit('guildCreate', await Format.guild(data.d));
+                        case 'GUILD_DELETE':
+                            return this.client.emit('guildDelete', await Format.guild(data.d));
+                        case 'GUILD_UPDATE':
+                            this.client.guilds.set(data.d.id, data.d);
+                            return this.client.emit('guildUpdate', await Format.guild(data.d));
+                        // for voice information, check Simplicity/Voice/VoiceClient.js
                         default:
                             return await EventHandler(this.client, data.t, data.d);
                     }
                     break;
                 default:
                     console.log(data.toString());
-                    data = JSON.parse(data.toString());
+                    //data = JSON.parse(data.toString());
                     this.#emitDebug(`Received UNKNOWN OPCODE ${data.op}`);
                     break;
             }
         });
 
-        this._WebSocket.on('error', (error) => {
+        this.websocket.on('error', (error) => {
             this.#emitRaw(error);
             this.#emitError(error);
         });
 
-        this._WebSocket.on('close', (code, reason) => {
-            this.#emitRaw(`Closed this._WebSocket with code ${code} and reason ${reason ||'No reason'}`);
-            this.#emitDebug(`Closed this._WebSocket with code ${code} and reason ${reason || 'No reason'}`);
+        this.websocket.on('close', (code, reason) => {
+            this.#emitRaw(`Closed WebSocket with code ${code} and reason ${reason ||'No reason'}`);
+            this.#emitDebug(`Closed Websocket with code ${code} and reason ${reason || 'No reason'}`);
 
             this.connected = false;
 
@@ -190,10 +245,9 @@ module.exports = class RESTManager {
 
                 res.on('end', async () => {
                     if (res.statusCode !== 200) {
-                        this.#emitError(`Received ${res.statusCode} from ${route}`);
-                        this.#emitError(data);
-                        return reject(data);
+                        return this.#sendError(data);
                     }
+
                     this.#emitDebug(`Received ${res.statusCode} from ${route}`);
                     this.#emitRaw(data);
 
@@ -240,10 +294,9 @@ module.exports = class RESTManager {
 
                 res.on('end', async () => {
                     if (res.statusCode !== 200) {
-                        this.#emitError(`Received ${res.statusCode} from ${route}`);
-                        this.#emitError(data);
-                        return reject(data);
+                        return this.#sendError(data);
                     }
+
                     this.#emitDebug(`Received ${res.statusCode} from ${route}`);
                     this.#emitRaw(data);
 
@@ -255,10 +308,16 @@ module.exports = class RESTManager {
                         return reject(err);
                     }
 
-                    for (const member of d) {
-                        // copy member.user to member
-                        for (const key in member.user) {
-                            member[key] = member.user[key];
+                    if (Array.isArray(d)) {
+                        for (const member of d) {
+                            // copy member.user to member
+                            for (const key in member.user) {
+                                member[key] = member.user[key];
+                            }
+                        }
+                    } else {
+                        for (const key in d.user) {
+                            d[key] = d.user[key];
                         }
                     }
 
@@ -273,7 +332,7 @@ module.exports = class RESTManager {
 
 
 
-    async post(route, data) {
+    async post(route, data, method = 'POST') {
         if (!this.connected) throw new Error('Client is not connected');
 
         if (this._rateLimitUntil > Date.now()) {
@@ -287,7 +346,7 @@ module.exports = class RESTManager {
                     "Authorization": `Bot ${this.client._token}`,
                     "Content-Type": "application/json"
                 },
-                method: 'POST',
+                method: method
             }, (res) => {
                 let data = '';
 
@@ -297,10 +356,9 @@ module.exports = class RESTManager {
 
                 res.on('end', async () => {
                     if (res.statusCode !== 200) {
-                        this.#emitError(`Received ${res.statusCode} from ${route}`);
-                        this.#emitError(data);
-                        return reject(data);
+                        return this.#sendError(data);
                     }
+
                     this.#emitDebug(`Received ${res.statusCode} from ${route}`);
                     this.#emitRaw(data);
 
@@ -309,16 +367,10 @@ module.exports = class RESTManager {
                         d = JSON.parse(data);
                     } catch (err) {
                         this.#emitError(err.stack);
-                        return reject(err);
                     }
 
                     return resolve(d);
                 })
-            });
-
-            req.on('error', (err) => {
-                this.#emitError(err.stack);
-                return reject(err);
             });
 
             req.write(JSON.stringify(data));
@@ -326,5 +378,60 @@ module.exports = class RESTManager {
         });
     }
 
+
+    async edit(route, data) {
+        if (!this.connected) throw new Error('Client is not connected');
+
+        if (this._rateLimitUntil > Date.now()) {
+            return null;
+        }
+
+        return new Promise((resolve, reject) => {
+            const web = HTTPS.request(`https://discord.com/api/v10${route}`, {
+                headers: {
+                    "Authorization": `Bot ${this.client._token}`,
+                    "Content-Type": "application/json"
+                },
+                method: 'PATCH'
+            }, (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', async () => {
+                    if (res.statusCode !== 200) {
+                        return this.#sendError(data);
+                    }
+
+                    this.#emitDebug(`Received ${res.statusCode} from ${route}`);
+                    this.#emitRaw(data);
+
+                    let d = {};
+                    try {
+                        d = JSON.parse(data);
+                    } catch (err) {
+                        this.#emitError(err.stack);
+                    }
+
+                    return resolve(d);
+                });
+
+                res.on('error', (err) => {
+                    this.#emitError(err.stack);
+                    return reject(err);
+                });
+
+            }, (err) => {
+                this.#emitError(err.stack);
+                return reject(err);
+            });
+
+            web.write(JSON.stringify(data));
+
+            web.end();
+        });
+    }
 
 };

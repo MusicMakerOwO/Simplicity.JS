@@ -14,4 +14,5 @@ exports.SlashCommand = require('./Builders/SlashCommandBuilder.js');
 exports.LinkedList = require('./DataStructures/LinkedList.js');
 exports.Queue = require('./DataStructures/Queue.js');
 exports.SizeLimitedMap = require('./DataStructures/SizeLimitedMap.js');
-
+exports.MultiKeyMap = require('./DataStructures/MultiKeyMap.js');
+exports.SizeLimitedMultiKeyMap = require('./DataStructures/SizeLimitedMultiKeyMap.js');
