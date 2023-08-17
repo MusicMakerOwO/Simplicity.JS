@@ -1,8 +1,8 @@
-const BaseCache = require('./BaseCache.js');
+const BaseCache = require('./BaseMultiCache.js');
 
 module.exports = class Role extends BaseCache {
     constructor(client, size = 100) {
-        super(client, size * 100);
+        super(size * 100);
         this.client = client;
     }
 

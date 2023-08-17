@@ -3,7 +3,7 @@ const Events = require('./Events.js');
 const Logs = require('./Utils/Logs.js');
 const VoiceClient = require('./Voice/VoiceClient.js');
 const Intents = require('./Constants/Intents.js');
-const { ClosestMatch } = require('@musicmaker/simplicity');
+const ClosestMatch = require('./Utils/ClosestMatch.js');
 const OPCode = require('./Constants/OPCodes.js');
 
 // Object with all cache classes
@@ -64,7 +64,7 @@ module.exports = class Client extends Events {
         this.emit('debug', 'Logging in...');
         this.startTimestamp = Date.now();
         
-        await this.API.login(token);
+        await this.API.login();
 
         this.emit('debug', 'Logged in');
     }
@@ -122,13 +122,33 @@ module.exports = class Client extends Events {
         }));
     }
 
+    async setStatusMessage(message) {
+        if (typeof message !== 'string') throw new TypeError('Status message must be a string, received ' + typeof message);
+        this.statusMessage = message;
+        this.activities = [{
+            name: 'i just need literally any string here xD',
+            state: message,
+            type: 4
+        }]
+
+        await this.API.websocket.send(JSON.stringify({
+            op: OPCode.PRESENCE_UPDATE,
+            d: {
+                since: null,
+                activities: this.activities,
+                status: this.status,
+                afk: false
+            }
+        }));
+    }
+
     /*
-    await client.setStatusMessage('Playing', 'with Simplicity');
-    await client.setStatusMessage('Listening', 'to Simplicity');
-    await client.setStatusMessage('Watching', 'Simplicity');
-    await client.setStatusMessage('Streaming', 'Simplicity', 'https://twitch.tv/simplicity');
+    await client.setActivity('Streaming with Simplicity', 'https://twitch.tv/monstercat');
+    await client.setActivity('Playing Rocket League');
+    await client.setActivity('Listening to Spotify');
+    await client.setActivity('Watching YouTube Together');
     */
-    async setStatusMessage(type, message, url) {
+    async setActivity(message, url) {
         /*
         0	Game	Playing {name}	"Playing Rocket League"
         1	Streaming	Streaming {details}	"Streaming Rocket League"
@@ -147,34 +167,26 @@ module.exports = class Client extends Events {
             'competing': 5
         }
 
-        if (typeof type !== 'string') throw new TypeError('Status type must be a string, received ' + typeof type);
-        type = type.toLowerCase();
-
-        if (typeof message !== 'string') throw new TypeError('Status message must be a string, received ' + typeof message);
-        if (url && typeof url !== 'string') throw new TypeError('Status URL must be a string, received ' + typeof url);
-
-        if (typeof typeList[type] !== 'number') {
-            let closestMatch = ClosestMatch(type, Object.keys(typeList));
-            Logs.warn(`Unknown status type "${type}" - Closest match: "${closestMatch}"`);
-            type = closestMatch;
+        if (typeof message !== 'string') throw new TypeError('Activity message must be a string, received ' + typeof message);
+        if (url) {
+            if (typeof url !== 'string') throw new TypeError('Activity url must be a string, received ' + typeof url);
+            if (!url.startsWith('https://')) throw new TypeError('Activity url must be a valid url');
+            if (!(url.includes('youtube.com') || url.includes('twitch.tv'))) throw new TypeError('Activity url must be a valid youtube or twitch url');
         }
 
-        if (type === 'streaming') {
-            if (!url) throw new Error('Streaming status must have a URL');
-            if (!['youtube', 'twitch'].includes(url.split('.')[1])) throw new Error('Streaming URL must be from YouTube or Twitch');
-            if (!url.startsWith('https://')) url = 'https://' + url;
+        const activity = message.split(/ +/g);
+        let type = typeList[activity.shift().toLowerCase()];
+        if (type === undefined) {
+            let closestMatch = ClosestMatch(activity, Object.keys(typeList));
+            Logs.warn(`Unknown activity "${activity}" - Closest match: "${closestMatch}"`);
+            type = typeList[closestMatch];
         }
-
-        if (!message) throw new Error('Status message must be provided');
-        if (message.length > 128) throw new Error('Status message must be under 128 characters');
 
         this.activities = [{
-            type: typeList[type],
-            name: message,
-            url: url
+            name: activity.join(' '),
+            type: type,
+            url: url || null
         }];
-
-        this.statusMessage = message;
 
         await this.API.websocket.send(JSON.stringify({
             op: OPCode.PRESENCE_UPDATE,

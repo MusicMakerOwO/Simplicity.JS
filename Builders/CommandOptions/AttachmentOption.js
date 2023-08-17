@@ -1,9 +1,9 @@
 const BaseOption = require('./BaseOption.js');
 
-module.exports = class MentionableOption extends BaseOption {
+module.exports = class AttachmentOption extends BaseOption {
     constructor() {
         super();
-        this.type = 9;
+        this.type = 11;
     }
 
     toJSON() {

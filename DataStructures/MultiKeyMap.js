@@ -7,7 +7,6 @@ module.exports = class MultiKeyMap {
 
         if (options.seperator && typeof options.seperator !== 'string') throw new TypeError('Seperator must be a string');
         this.seperator = options.seperator ?? '::';
-
     }
 
     CombinedKeys(keys) {
@@ -28,16 +27,29 @@ module.exports = class MultiKeyMap {
     }
 
     get(...keys) {
+        return this.getAll(...keys);
+    }
+
+    getAll(...keys) {
         if (keys.some(k => typeof k !== 'string')) throw new TypeError('All keys must be strings');
         keys = this.CombinedKeys(keys);
         return this.map.get(keys);
     }
 
     getAny(...keys) {
-        return this.findByKey(...keys);
+        if (keys.some(k => typeof k !== 'string')) throw new TypeError('All keys must be strings');
+
+        let mapKeys = [...this.map.keys()];
+        let found = mapKeys.find(k => k.split(this.seperator).includes(...keys)) ?? [];
+
+        return this.map.get(found);
     }
 
     has(...keys) {
+        return this.hasAll(...keys);
+    }
+
+    hasAll(...keys) {
         if (keys.some(k => typeof k !== 'string')) throw new TypeError('All keys must be strings');
         keys = this.CombinedKeys(keys);
         return this.map.has(keys);
@@ -51,6 +63,10 @@ module.exports = class MultiKeyMap {
     }
 
     delete(...keys) {
+        return this.deleteAll(...keys);
+    }
+
+    deleteAll(...keys) {
         if (keys.some(k => typeof k !== 'string')) throw new TypeError('All keys must be strings');
         
         keys = this.CombinedKeys(keys);
@@ -66,18 +82,6 @@ module.exports = class MultiKeyMap {
         let found = keys.find(k => k.split(this.seperator).includes(key)) ?? [];
 
         this.map.delete(found);
-
-        return found;
-    }
-
-    findByKey(...keys) {
-        if (keys.some(k => typeof k !== 'string')) throw new TypeError('All keys must be strings');
-
-        let entries = [...this.map.entries()];
-        
-        let found = entries.filter(([k, v]) => k.split(this.seperator).includes(...keys)) ?? [];
-
-        found = found.map(([k, v]) => v);
 
         return found;
     }
@@ -120,8 +124,35 @@ module.exports = class MultiKeyMap {
                     value: [keys, value],
                     done: false
                 };
+            },
+            first: () => {
+                const result = iterator.first();
+                if (result.done) {
+                    return { done: true };
+                }
+
+                const [keysString, value] = result.value;
+                const keys = keysString.split(this.seperator);
+
+                return {
+                    value: [keys, value],
+                    done: false
+                };
+            },
+            last: () => {
+                const result = iterator.last();
+                if (result.done) {
+                    return { done: true };
+                }
+
+                const [keysString, value] = result.value;
+                const keys = keysString.split(this.seperator);
+
+                return {
+                    value: [keys, value],
+                    done: false
+                };
             }
         }
     }
-
 }

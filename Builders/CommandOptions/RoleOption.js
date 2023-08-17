@@ -1,33 +1,22 @@
-const OptionType = require('../../Constants/OptionType.js');
+const BaseOption = require('./BaseOption.js');
 
-module.exports = class RoleOption {
+module.exports = class RoleOption extends BaseOption {
     constructor() {
-        this.data = {
-            name: null,
-            description: null,
-            required: false,
-        };
-    }
-
-    setName(name) {
-        this.data.name = name;
-        return this;
-    }
-
-    setDescription(description) {
-        this.data.description = description || '\u200b';
-        return this;
-    }
-
-    setRequired(required = true) {
-        this.data.required = Boolean(required);
-        return this;
+        super();
+        this.type = 8;
     }
 
     toJSON() {
         return {
-            ...this.data,
-            type: OptionType.ROLE,
-        };
+            type: this.type,
+            name: this.name,
+            description: this.description,
+            required: this.required,
+        }
     }
+
+    build() {
+        return this.toJSON();
+    }
+
 }

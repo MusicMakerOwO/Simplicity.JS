@@ -1,33 +1,40 @@
-const OptionType = require('../../Constants/OptionType.js');
+const BaseOption = require('./BaseOption.js');
+const ChannelTypes = require('../../Constants/ChannelTypes.js');
 
-module.exports = class ChannelOption {
+module.exports = class ChannelOption extends BaseOption {
     constructor() {
-        this.data = {
-            name: null,
-            description: null,
-            required: false,
-        };
+        super();
+        this.type = 7;
+        this.channel_types = [];
     }
 
-    setName(name) {
-        this.data.name = name;
-        return this;
-    }
+    setChannelTypes(...channel_types) {
+        for (const channel_type of channel_types) {
+            if (Array.isArray(channel_type)) {
+                return this.setChannelTypes(...channel_type);
+            }
 
-    setDescription(description) {
-        this.data.description = description || '\u200b';
-        return this;
-    }
+            if (!ChannelTypes[channel_type]) {
+                throw new Error(`Invalid channel type ${channel_type}`);
+            }
 
-    setRequired(required = true) {
-        this.data.required = Boolean(required);
+            this.channel_types.push(channel_type);
+        }
+
         return this;
     }
 
     toJSON() {
         return {
-            ...this.data,
-            type: OptionType.CHANNEL,
-        };
+            type: this.type,
+            name: this.name,
+            description: this.description,
+            required: this.required,
+        }
     }
+
+    build() {
+        return this.toJSON();
+    }
+
 }
