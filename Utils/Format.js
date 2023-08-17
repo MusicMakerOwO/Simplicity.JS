@@ -97,11 +97,11 @@ async function message(client, msg) {
     }
     */
 
-    msg.channel = await channel( client, await client.channels.get(msg.channel_id) );
-    msg.guild = await guild( client, await client.guilds.get(msg.guild_id) )
-    msg.member = await member( client, await client.members.get(msg.guild_id, msg.author.id), msg.guild_id );
-    msg.user = msg.author;
-    msg.author = await client.users.get(msg.author.id);
+    msg.channel = await channel( client, await client.channels.get(msg.guild_id, msg.channel_id) );
+    // msg.guild = await guild( client, await client.guilds.get(msg.guild_id) )
+    // msg.member = await member( client, await client.members.get(msg.guild_id, msg.author.id), msg.guild_id );
+    // msg.user = msg.author;
+    // msg.author = await client.users.get(msg.author.id);
 
     msg.timestamp = new Date(msg.timestamp);
     if (msg.referenced_message) msg.referenced_message.timestamp = new Date(msg.referenced_message.timestamp);
@@ -118,7 +118,6 @@ async function message(client, msg) {
 
         let ID = emojiData.pop();
         let name = emojiData.pop();
-        console.log(emojiData);
         let animated = emojiData.pop() === 'a';
 
         msg.emojis.push({
