@@ -1,8 +1,8 @@
-const BaseCache = require('./BaseCache.js');
+const BaseCache = require('./BaseSingleCache.js');
 
 module.exports = class Guild extends BaseCache {
     constructor(client, size = 100) {
-        super(client, size);
+        super(size);
         this.client = client;
     }
 

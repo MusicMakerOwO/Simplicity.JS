@@ -1,8 +1,8 @@
-const BaseCache = require('./BaseCache.js');
+const BaseCache = require('./BaseMultiCache.js');
 
 module.exports = class Sticker extends BaseCache {
     constructor(client, size = 100) {
-        super(client, size * 20);
+        super(size * 20);
         this.client = client;
     }
 

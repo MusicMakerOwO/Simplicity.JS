@@ -4,9 +4,11 @@ const Queue = require('../DataStructures/Queue.js');
 const Log = require('../Utils/Logs.js');
 const Format = require('../Utils/Format.js');
 const EventHandler = require('../Utils/EventHandler.js');
-const HTTPS = require('node:https');
 const GatewayErrors = require('../Constants/GatewayErrors.js');
 const ErrorCodes = require('../Constants/ErrorCodes.js');
+const HTTPS = require('https');
+const Intent = require('../Constants/Intents.js');
+
 
 module.exports = class RESTManager {
     constructor(client) {
@@ -77,7 +79,7 @@ module.exports = class RESTManager {
 
         this.#emitDebug('Logging in...');
 
-        this.websocket = new ws('wss://gateway.discord.gg/?v=10&encoding=json');
+        this.websocket = new ws('wss://gateway.discord.gg/?v=11&encoding=json');
 
         this.websocket.on('open', () => {
             this.connected = true;
@@ -132,34 +134,42 @@ module.exports = class RESTManager {
                             break;
                         case 'GUILD_CREATE':
                             // Don't emit this event if the client logged in less than 5 seconds ago
-                            if (Date.now() - this.client.startTimestamp < 5000) {
+                            if (Date.now() - this.client.startTimestamp < 2000) {
                                 this.client.guilds.set(data.d.id, data.d);
                                 for (const channel of data.d.channels) {
-                                    this.client.channels.set(channel.id,
+                                    this.client.channels.set(data.d.id, channel.id,
                                         Object.assign(channel, { guildID: data.d.id })
                                     );
                                 }
                                 for (const emoji of data.d.emojis) {
-                                    this.client.emojis.set(emoji.id,
-                                        Object.assign(emoji, { guildID: data.d.id })
+                                    this.client.emojis.set(data.d.id, emoji.id,
+                                        {
+                                            ...emoji,
+                                            guildID: data.d.id,
+                                            url: `https://cdn.discordapp.com/emojis/${emoji.id}.${emoji.animated ? 'gif' : 'png'}?size=1024`
+                                        }
                                     );
                                 }
                                 for (const role of data.d.roles) {
-                                    this.client.roles.set(role.id,
+                                    this.client.roles.set(data.d.id, role.id,
                                         Object.assign(role, { guildID: data.d.id })
                                     );
                                 }
                                 for (const sticker of data.d.stickers) {
-                                    this.client.stickers.set(sticker.id,
-                                        Object.assign(sticker, { guildID: data.d.id })
+                                    this.client.stickers.set(data.d.id, sticker.id,
+                                        {
+                                            ...sticker,
+                                            guildID: data.d.id,
+                                            url: `https://cdn.discordapp.com/stickers/${sticker.id}.${sticker.format}?size=1024`
+                                        }
                                     );
                                 }
-                                // if they have members intent, get all members
-                                if (this.client.intents & (1 << 8)) {
+                                // bitwise AND : 0111 & 0010 = 0010
+                                if (this.client.intents & Intent.GuildMembers) {
                                     try {
-                                        let members = this.getBulk(`/guilds/${data.d.id}/members`);
+                                        let members = await this.getBulk(`/guilds/${data.d.id}/members`);
                                         for (const member of members) {
-                                            this.client.members.set(member.id,
+                                            this.client.members.set(data.d.id, member.user.id,
                                                 Object.assign(member, { guildID: data.d.id })
                                             );
                                         }

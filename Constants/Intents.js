@@ -31,6 +31,7 @@ module.exports = {
     UserMute: 1 << 2,
     MemberMute: 1 << 2,
     Mute: 1 << 2,
+    Timeout: 1 << 2,
     
     GuildEmojisAndStickers: 1 << 3,
     GuildStickers: 1 << 3,

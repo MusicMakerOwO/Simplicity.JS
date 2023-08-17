@@ -1,9 +1,9 @@
-const BaseCache = require('./BaseCache');
+const BaseCache = require('./BaseMultiCache');
 const SizeLimitedMultiKeyMap = require('../../DataStructures/SizeLimitedMultiKeyMap.js');
 
 module.exports = class MemberCache extends BaseCache {
     constructor(client, maxCacheSize = 100) {
-        super(client, maxCacheSize * 100);
+        super(maxCacheSize * 100);
         this.client = client;
         this.cache = new SizeLimitedMultiKeyMap(maxCacheSize);
     }
