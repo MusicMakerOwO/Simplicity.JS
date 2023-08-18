@@ -11,7 +11,7 @@ module.exports = class EmojiCache extends BaseCache {
         if (!emoji) return null;
 
         // Save the emoji to the cache
-        super().set(ids[1], emoji.id, emoji);
+        this.set(ids[1], emoji.id, emoji);
 
         return emoji;
     }

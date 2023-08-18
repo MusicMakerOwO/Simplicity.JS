@@ -11,7 +11,7 @@ module.exports = class Sticker extends BaseCache {
         if (!sticker) return null;
 
         // Save the sticker to the cache
-        super().set(ids[1], sticker.id, sticker);
+        this.set(ids[1], sticker.id, sticker);
 
         return sticker;
     }

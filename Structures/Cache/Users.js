@@ -11,7 +11,7 @@ module.exports = class User extends BaseCache {
         if (!user) return null;
 
         // Save the user to the cache
-        super().set(user.id, user);
+        this.set(user.id, user);
 
         return user;
     }

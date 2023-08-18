@@ -1,4 +1,4 @@
-const SizeLimitedMultiKeyMap = require('../SizeLimitedMultiKeyMap.js');
+const SizeLimitedMultiKeyMap = require('../../DataStructures/SizeLimitedMultiKeyMap.js');
 
 module.exports = class BaseCache extends SizeLimitedMultiKeyMap {
     constructor(sizeLimit = Infinity) {
@@ -12,15 +12,16 @@ module.exports = class BaseCache extends SizeLimitedMultiKeyMap {
         let options = typeof data[data.length - 1] === 'object' ? data.pop() : {};
         if (options.cache === undefined) options.cache = true;
 
-        if (super().has(...data)) {
-            return super().get(...data);
+        // check if already cached
+        if (this.has(...data)) {
+            return this.get(...data);
         }
 
         if (options.cache === false) {
             return await this.fetch(...data, options);
         }
 
-        return super().getAny(...data);
+        return this.getAny(...data);
     }
 
     async fetch(id, options) {

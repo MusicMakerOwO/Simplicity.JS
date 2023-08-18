@@ -11,7 +11,7 @@ module.exports = class Channel extends BaseCache {
         if (!channel) return null;
 
         // Save the channel to the cache
-        super().set(ids[1], channel.id, channel);
+        this.set(ids[1], channel.id, channel);
 
         return channel;
     }

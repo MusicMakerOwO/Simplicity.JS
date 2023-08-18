@@ -11,15 +11,14 @@ module.exports = class LimitedMultiKeyMap extends MultiKeyMap {
 
         let value = data.pop();
 
-        if (data.some(k => typeof k !== 'string')) throw new TypeError('All keys must be strings');
+        if (data.some(key => typeof key !== 'string')) throw new TypeError('All keys must be strings');
         
-        let keys = super.CombinedKeys(data);
         if (typeof value === 'undefined') throw new TypeError('Must provide a value');
 
-        this.map.set(keys, value);
+        super.set(...data, value);
 
-        if (this.map.size > this.maxSize) {
-            const firstKey = this.map.keys().next().value;
+        if (this.size > this.maxSize) {
+            const firstKey = super.keys().next().value;
             this.delete(firstKey);
         }
     }

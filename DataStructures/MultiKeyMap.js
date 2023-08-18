@@ -5,11 +5,11 @@ module.exports = class MultiKeyMap extends Map {
         this.seperator = options.seperator ?? '::';
     }
 
-    #CombinedKeys(...keys) {
-        return keys.map(k => JSON.stringify(k)).join(this.seperator);
+    CombinedKeys(...keys) {
+        return keys.join(this.seperator);
     }
 
-    #AllData() {
+    AllData() {
         let data = [];
         for (let [key, value] of this) {
             data.push({ key: key.split(this.seperator), value });
@@ -19,10 +19,12 @@ module.exports = class MultiKeyMap extends Map {
     
     set(...data) {
         if (data.length < 2) throw new TypeError('Must provide at least 1 key and 1 value');
-        if (data.some(d => typeof d !== 'string')) throw new TypeError('All keys must be strings');
 
         let value = data.pop();
-        let keys = this.#CombinedKeys(...data);
+
+        if (data.some(key => typeof key !== 'string')) throw new TypeError('All keys must be strings');
+
+        let keys = this.CombinedKeys(...data);
 
         return super.set(keys, value);
     }
@@ -33,7 +35,7 @@ module.exports = class MultiKeyMap extends Map {
         if (keys.length === 1) {
             return this.getAny(...keys);
         } else {
-            let key = this.#CombinedKeys(...keys);
+            let key = this.CombinedKeys(...keys);
             return super.get(key);
         }
     }
@@ -41,7 +43,7 @@ module.exports = class MultiKeyMap extends Map {
     getAny(...keys) {
         if (keys.length < 1) throw new TypeError('Must provide at least 1 key');
 
-        let allData = this.#AllData();
+        let allData = this.AllData();
         let data = allData.filter(d => d.key.some(k => keys.includes(k)));
         if (data.length === 0) return undefined;
         return data.map(d => d.value);
@@ -51,11 +53,11 @@ module.exports = class MultiKeyMap extends Map {
         if (keys.length < 1) throw new TypeError('Must provide at least 1 key');
 
         if (keys.length === 1) {
-            let allData = this.#AllData();
+            let allData = this.AllData();
             let data = allData.filter(d => d.key.includes(keys[0]));
             return data.length > 0;
         } else {
-            let key = this.#CombinedKeys(...keys);
+            let key = this.CombinedKeys(...keys);
             return super.has(key);
         }
     }
@@ -63,7 +65,7 @@ module.exports = class MultiKeyMap extends Map {
     hasAny(...keys) {
         if (keys.length < 1) throw new TypeError('Must provide at least 1 key');
 
-        let allData = this.#AllData();
+        let allData = this.AllData();
         let data = allData.filter(d => d.key.some(k => keys.includes(k)));
         return data.length > 0;
     }
@@ -72,13 +74,13 @@ module.exports = class MultiKeyMap extends Map {
         if (keys.length < 1) throw new TypeError('Must provide at least 1 key');
         
         if (keys.length === 1) {
-            let allData = this.#AllData();
+            let allData = this.AllData();
             let data = allData.filter(d => d.key.includes(keys[0]));
             if (data.length === 0) return false;
             data.forEach(d => super.delete(d.key));
             return true;
         } else {
-            let key = this.#CombinedKeys(...keys);
+            let key = this.CombinedKeys(...keys);
             return super.delete(key);
         }
     }
@@ -87,11 +89,41 @@ module.exports = class MultiKeyMap extends Map {
         // exact same as delete, but matches all inputs with all keys
         if (keys.length < 1) throw new TypeError('Must provide at least 1 key');
 
-        let allData = this.#AllData();
+        let allData = this.AllData();
         let data = allData.filter(d => d.key.some(k => keys.includes(k)));
         if (data.length === 0) return false;
         data.forEach(d => super.delete(d.key));
         return true;
+    }
+
+    find (callback) {
+        if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
+        let allData = this.AllData();
+        let data = allData.find(d => callback(d.value, d.key));
+        if (data.length > 0) return data;
+        return undefined;
+    }
+
+    filter (callback) {
+        if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
+        let allData = this.AllData();
+        let data = allData.filter(d => callback(d.value, d.key));
+        if (data.length > 0) return data;
+        return undefined;
+    }
+
+    map (callback) {
+        if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
+        let allData = this.AllData();
+        let data = allData.map(d => callback(d.value, d.key));
+        if (data.length > 0) return data;
+        return undefined;
+    }
+
+    forEach (callback) {
+        if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
+        let allData = this.AllData();
+        allData.forEach(d => callback(d.value, d.key));
     }
 
 };

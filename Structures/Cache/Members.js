@@ -11,7 +11,7 @@ module.exports = class MemberCache extends BaseCache {
         if (!member) return null;
 
         // Save the member to the cache
-        super().set(ids[1], member.id, member);
+        this.set(ids[1], member.id, member);
 
         return member;
     }

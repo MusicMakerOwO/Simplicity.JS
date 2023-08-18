@@ -11,7 +11,7 @@ module.exports = class Guild extends BaseCache {
         if (!guild) return null;
 
         // Save the guild to the cache
-        super().set(guild.id, guild);
+        this.set(guild.id, guild);
 
         return guild;
     }

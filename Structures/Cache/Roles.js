@@ -11,7 +11,7 @@ module.exports = class Role extends BaseCache {
         if (!role) return null;
 
         // Save the role to the cache
-        super().set(ids[1], role.id, role);
+        this.set(ids[1], role.id, role);
 
         return role;
     }
