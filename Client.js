@@ -1,10 +1,10 @@
-const Utils = require('./Utils/UtilsLoader.js')();
 const Events = require('./Events.js');
-const Logs = require('./Utils/Logs.js');
 const VoiceClient = require('./Voice/VoiceClient.js');
-const Intents = require('./Constants/Intents.js');
 const ClosestMatch = require('./Utils/ClosestMatch.js');
+const Intents = require('./Constants/Intents.js');
+const Logs = require('./Utils/Logs.js');
 const OPCode = require('./Constants/OPCodes.js');
+const Utils = require('./Utils/UtilsLoader.js')();
 
 // Object with all cache classes
 let Cache = require('./Utils/CacheLoader.js')();
@@ -43,6 +43,14 @@ module.exports = class Client extends Events {
         this.status = 'online';
         this.statusMessage = null;
         this.activities = [];
+
+        this.commands = new Map();
+        this.buttons = new Map();
+        this.selectMenus = new Map();
+        this.modals = new Map();
+        this.contextMenus = new Map();
+
+        this.cache = new Map();
 
         if (options.token) this.login(options.token);
     }
@@ -197,6 +205,32 @@ module.exports = class Client extends Events {
                 afk: false
             }
         }));
+
+    }
+
+
+
+    /*
+    await client.registerCommands(...commands);
+    */
+    async registerCommands(...commands) {
+
+        if (!this.applicationID) throw new Error('Client application ID is required to register commands');
+
+        // combine all elements into one array, remove any duplicates
+        commands = commands.flat(Infinity);
+        commands = [...new Set(commands)];
+
+        if (!Array.isArray(commands)) throw new TypeError('Commands must be an array, received ' + typeof commands);
+        if (commands.some(c => typeof c !== 'object')) throw new TypeError('Commands must only contain objects');
+        
+        let nameList = [];
+        for (let command of commands) {
+            if (nameList.includes(command.name)) throw new TypeError(`Command name "${command.name}" is already taken`);
+            nameList.push(command.name);
+        }
+
+        await this.API.registerCommands(commands);
 
     }
 
