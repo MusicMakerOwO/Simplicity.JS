@@ -6,8 +6,14 @@ module.exports = class Role extends BaseCache {
         this.client = client;
     }
 
-    async fetch(id, options = {}) {
-        if (typeof options !== 'object') throw new TypeError('Options must be an object.');
-        return await this.client.API.get(`/roles/${id}`, options);
+    async fetch(...ids) {
+        let role = await this.client.API.get(`/guilds/${ids[0]}/roles/${ids[1]}`);
+        if (!role) return null;
+
+        // Save the role to the cache
+        super().set(ids[1], role.id, role);
+
+        return role;
     }
+
 }

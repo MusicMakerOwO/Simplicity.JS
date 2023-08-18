@@ -6,9 +6,14 @@ module.exports = class Guild extends BaseCache {
         this.client = client;
     }
 
-    async fetch(id, options = {}) {
-        if (typeof options !== 'object') throw new TypeError('Options must be an object.');
-        return await this.client.API.get(`/guilds/${id}`, options);
+    async fetch(id) {
+        let guild = await this.client.API.get(`/guilds/${id}`, options);
+        if (!guild) return null;
+
+        // Save the guild to the cache
+        super().set(guild.id, guild);
+
+        return guild;
     }
 
 }

@@ -6,8 +6,14 @@ module.exports = class Sticker extends BaseCache {
         this.client = client;
     }
 
-    async fetch(id, options = {}) {
-        if (typeof options !== 'object') throw new TypeError('Options must be an object.');
-        return await this.client.API.get(`/stickers/${id}`, options);
+    async fetch(...ids) {
+        let sticker = await this.client.API.get(`/guilds/${ids[0]}/stickers/${ids[1]}`);
+        if (!sticker) return null;
+
+        // Save the sticker to the cache
+        super().set(ids[1], sticker.id, sticker);
+
+        return sticker;
     }
+
 }

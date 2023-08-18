@@ -7,6 +7,12 @@ module.exports = class Channel extends BaseCache {
     }
 
     async fetch(...ids) {
-        return await this.client.API.get(`/guilds/${ids[0]}/channels/${ids[1]}`);
+        let channel = await this.client.API.get(`/guilds/${ids[0]}/channels/${ids[1]}`);
+        if (!channel) return null;
+
+        // Save the channel to the cache
+        super().set(ids[1], channel.id, channel);
+
+        return channel;
     }
 }

@@ -6,8 +6,14 @@ module.exports = class User extends BaseCache {
         this.client = client;
     }
 
-    async fetch(id, options = {}) {
-        if (typeof options !== 'object') throw new TypeError('Options must be an object.');
-        return await this.client.API.get(`/users/${id}`, options);
+    async fetch(id) {
+        let user = await this.client.API.get(`/users/${id}`);
+        if (!user) return null;
+
+        // Save the user to the cache
+        super().set(user.id, user);
+
+        return user;
     }
+
 }
