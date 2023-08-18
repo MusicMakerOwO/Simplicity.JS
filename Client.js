@@ -9,6 +9,8 @@ const Utils = require('./Utils/UtilsLoader.js')();
 // Object with all cache classes
 let Cache = require('./Utils/CacheLoader.js')();
 
+let _token = '';
+
 module.exports = class Client extends Events {
     constructor(options) {
 
@@ -16,13 +18,12 @@ module.exports = class Client extends Events {
 
         ValidateOptions(options);
 
-        this._token = options.token;
-        this.applicationID = options.applicationID ?? null;
+        _token = options.token;
+        this.applicationID = options.applicationID;
         this.intents = Utils.FormatIntents(options.intents);
         this.user = new Object(null);
         this._currentlyLoggedIn = false;
 
-        this.API_METHOD = options.API_METHOD || 'rest';
         this.API = new Object(null);
 
         this.startTimestamp = null;
@@ -57,17 +58,13 @@ module.exports = class Client extends Events {
 
     async login(token) {
         // if none is provided, use the one from the constructor
-        if (!token) token = this._token;
+        token = token ?? _token;
         if (!token) throw new Error('No token provided');
-
-        this._token = token;
 
         if (this._currentlyLoggedIn) return new Error('Client is already logged in');
         this._currentlyLoggedIn = true;
 
-        this.API = /(https?)/i.test(this.API_METHOD)
-            ? new (require('./Clients/HTTPSClient.js'))(this)
-            : new (require('./Clients/RESTClient.js'))(this);
+        this.API = new (require('./WSClient.js'))(this, token);
 
         this.emit('debug', 'Logging in...');
         this.startTimestamp = Date.now();
