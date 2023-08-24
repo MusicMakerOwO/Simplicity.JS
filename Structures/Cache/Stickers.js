@@ -1,13 +1,19 @@
-const BaseCache = require('./BaseCache.js');
+const BaseCache = require('./BaseMultiCache.js');
 
 module.exports = class Sticker extends BaseCache {
     constructor(client, size = 100) {
-        super(client, size * 20);
+        super(size * 20);
         this.client = client;
     }
 
-    async fetch(id, options = {}) {
-        if (typeof options !== 'object') throw new TypeError('Options must be an object.');
-        return await this.client.API.get(`/stickers/${id}`, options);
+    async fetch(...ids) {
+        let sticker = await this.client.API.get(`/guilds/${ids[0]}/stickers/${ids[1]}`);
+        if (!sticker) return null;
+
+        // Save the sticker to the cache
+        this.set(ids[1], sticker.id, sticker);
+
+        return sticker;
     }
+
 }

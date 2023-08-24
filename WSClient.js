@@ -1,24 +1,25 @@
-const OPCodes = require('../Constants/OPCodes.js');
+const OPCodes = require('./Constants/OPCodes.js');
 const ws = require('ws');
-const Queue = require('../DataStructures/Queue.js');
-const Log = require('../Utils/Logs.js');
-const Format = require('../Utils/Format.js');
-const EventHandler = require('../Utils/EventHandler.js');
-const HTTPS = require('node:https');
-const GatewayErrors = require('../Constants/GatewayErrors.js');
-const ErrorCodes = require('../Constants/ErrorCodes.js');
+const Log = require('./Utils/Logs.js');
+const Format = require('./Utils/Format.js');
+const EventHandler = require('./Utils/EventHandler.js');
+const GatewayErrors = require('./Constants/GatewayErrors.js');
+const ErrorCodes = require('./Constants/ErrorCodes.js');
+const HTTPS = require('https');
+const Intent = require('./Constants/Intents.js');
+
+let _token = null;
+let headers = {};
 
 module.exports = class RESTManager {
-    constructor(client) {
+    constructor(client, token) {
         this.client = client;
 
-        this.callStack = new Queue();
-
-        this._rateLimitUntil = 0;
-
-        this._heartbeatInterval = 41250;
-        this._heartbeatTimer = null;
-        this._heartbeatAck = true;
+        _token = token;
+        headers = {
+            "Authorization": `Bot ${_token}`,
+            "Content-Type": "application/json"
+        };
 
         this._seq = null;
 
@@ -77,7 +78,8 @@ module.exports = class RESTManager {
 
         this.#emitDebug('Logging in...');
 
-        this.websocket = new ws('wss://gateway.discord.gg/?v=10&encoding=json');
+        this.websocket = new ws('wss://gateway.discord.gg/?v=11&encoding=json');
+
 
         this.websocket.on('open', () => {
             this.connected = true;
@@ -96,7 +98,7 @@ module.exports = class RESTManager {
                     this.websocket.send(JSON.stringify({
                         op: OPCodes.IDENTIFY,
                         d: {
-                            token: this.client._token,
+                            token: _token,
                             properties: {
                                 os: process.platform,
                                 device: 'Simplicity',
@@ -132,34 +134,42 @@ module.exports = class RESTManager {
                             break;
                         case 'GUILD_CREATE':
                             // Don't emit this event if the client logged in less than 5 seconds ago
-                            if (Date.now() - this.client.startTimestamp < 5000) {
+                            if (Date.now() - this.client.startTimestamp < 2000) {
                                 this.client.guilds.set(data.d.id, data.d);
                                 for (const channel of data.d.channels) {
-                                    this.client.channels.set(channel.id,
+                                    this.client.channels.set(data.d.id, channel.id,
                                         Object.assign(channel, { guildID: data.d.id })
                                     );
                                 }
                                 for (const emoji of data.d.emojis) {
-                                    this.client.emojis.set(emoji.id,
-                                        Object.assign(emoji, { guildID: data.d.id })
+                                    this.client.emojis.set(data.d.id, emoji.id,
+                                        {
+                                            ...emoji,
+                                            guildID: data.d.id,
+                                            url: `https://cdn.discordapp.com/emojis/${emoji.id}.${emoji.animated ? 'gif' : 'png'}?size=1024`
+                                        }
                                     );
                                 }
                                 for (const role of data.d.roles) {
-                                    this.client.roles.set(role.id,
+                                    this.client.roles.set(data.d.id, role.id,
                                         Object.assign(role, { guildID: data.d.id })
                                     );
                                 }
                                 for (const sticker of data.d.stickers) {
-                                    this.client.stickers.set(sticker.id,
-                                        Object.assign(sticker, { guildID: data.d.id })
+                                    this.client.stickers.set(data.d.id, sticker.id,
+                                        {
+                                            ...sticker,
+                                            guildID: data.d.id,
+                                            url: `https://cdn.discordapp.com/stickers/${sticker.id}.${sticker.format}?size=1024`
+                                        }
                                     );
                                 }
-                                // if they have members intent, get all members
-                                if (this.client.intents & (1 << 8)) {
+                                // bitwise AND : 0111 & 0010 = 0010
+                                if (this.client.intents & Intent.GuildMembers) {
                                     try {
-                                        let members = this.getBulk(`/guilds/${data.d.id}/members`);
+                                        let members = await this.getBulk(`/guilds/${data.d.id}/members`);
                                         for (const member of members) {
-                                            this.client.members.set(member.id,
+                                            this.client.members.set(data.d.id, member.user.id,
                                                 Object.assign(member, { guildID: data.d.id })
                                             );
                                         }
@@ -194,7 +204,7 @@ module.exports = class RESTManager {
         });
 
         this.websocket.on('close', (code, reason) => {
-            this.#emitRaw(`Closed WebSocket with code ${code} and reason ${reason ||'No reason'}`);
+            this.#emitRaw(`Closed WebSocket with code ${code} and reason ${reason || 'No reason'}`);
             this.#emitDebug(`Closed Websocket with code ${code} and reason ${reason || 'No reason'}`);
 
             this.connected = false;
@@ -223,7 +233,7 @@ module.exports = class RESTManager {
 
 
 
-    async get(route, options) {
+    async get(route) {
         if (!this.connected) throw new Error('Client is not connected');
 
         if (this._rateLimitUntil > Date.now()) {
@@ -232,9 +242,7 @@ module.exports = class RESTManager {
 
         return new Promise((resolve, reject) => {
             HTTPS.get(`https://discord.com/api/v10${route}`, {
-                headers: {
-                    "Authorization": `Bot ${this.client._token}`
-                },
+                headers,
                 method: 'GET'
             }, (res) => {
                 let data = '';
@@ -259,10 +267,14 @@ module.exports = class RESTManager {
                         return reject(err);
                     }
 
-                    this.client[route.split('/')[1]].set(d.id, d);
-
                     return resolve(d);
-                })
+                });
+
+                res.on('error', (err) => {
+                    this.#emitError(err.stack);
+                    return reject(err);
+                });
+                
             }, (err) => {
                 this.#emitError(err.stack);
                 return reject(err);
@@ -272,7 +284,7 @@ module.exports = class RESTManager {
 
 
 
-    getBulk(route) {
+    async getBulk(route) {
         if (!this.connected) throw new Error('Client is not connected');
 
         if (this._rateLimitUntil > Date.now()) {
@@ -281,9 +293,7 @@ module.exports = class RESTManager {
 
         return new Promise((resolve, reject) => {
             HTTPS.get(`https://discord.com/api/v10${route}?limit=1000`, {
-                headers: {
-                    "Authorization": `Bot ${this.client._token}`,
-                },
+                headers,
                 method: 'GET'
             }, (res) => {
                 let data = '';
@@ -322,7 +332,13 @@ module.exports = class RESTManager {
                     }
 
                     return resolve(d);
-                })
+                });
+
+                res.on('error', (err) => {
+                    this.#emitError(err.stack);
+                    return reject(err);
+                });
+
             }, (err) => {
                 this.#emitError(err.stack);
                 return reject(err);
@@ -342,10 +358,7 @@ module.exports = class RESTManager {
         return new Promise((resolve, reject) => {
             // https post request
             const req = HTTPS.request(`https://discord.com/api/v10${route}`, {
-                headers: {
-                    "Authorization": `Bot ${this.client._token}`,
-                    "Content-Type": "application/json"
-                },
+                headers,
                 method: method
             }, (res) => {
                 let data = '';
@@ -370,7 +383,12 @@ module.exports = class RESTManager {
                     }
 
                     return resolve(d);
-                })
+                });
+
+                res.on('error', (err) => {
+                    this.#emitError(err.stack);
+                    return reject(err);
+                });
             });
 
             req.write(JSON.stringify(data));
@@ -388,10 +406,7 @@ module.exports = class RESTManager {
 
         return new Promise((resolve, reject) => {
             const web = HTTPS.request(`https://discord.com/api/v10${route}`, {
-                headers: {
-                    "Authorization": `Bot ${this.client._token}`,
-                    "Content-Type": "application/json"
-                },
+                headers,
                 method: 'PATCH'
             }, (res) => {
                 let data = '';

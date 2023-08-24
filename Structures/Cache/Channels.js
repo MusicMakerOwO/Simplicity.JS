@@ -1,13 +1,18 @@
-const BaseCache = require('./BaseCache');
+const BaseCache = require('./BaseMultiCache');
 
 module.exports = class Channel extends BaseCache {
     constructor(client, size = 100) {
-        super(client, size * 100);
+        super(size * 100);
         this.client = client;
     }
 
-    async fetch(id, options = {}) {
-        if (typeof options !== 'object') throw new TypeError('Options must be an object.');
-        return await this.client.API.get(`/channels/${id}`, options);
+    async fetch(...ids) {
+        let channel = await this.client.API.get(`/guilds/${ids[0]}/channels/${ids[1]}`);
+        if (!channel) return null;
+
+        // Save the channel to the cache
+        this.set(ids[1], channel.id, channel);
+
+        return channel;
     }
 }

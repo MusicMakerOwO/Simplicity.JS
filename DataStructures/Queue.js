@@ -1,6 +1,6 @@
 module.exports = class Queue {
     constructor() {
-      this.queue = [];
+        this.queue = [];
     }
   
     enqueue(element) {
@@ -12,10 +12,10 @@ module.exports = class Queue {
     }
 
     dequeue() {
-      if (this.isEmpty()) {
-        return null;
-      }
-      return this.queue.shift();
+        if (this.isEmpty()) {
+            return null;
+        }
+        return this.queue.shift();
     }
 
     pull() {
@@ -27,20 +27,20 @@ module.exports = class Queue {
     }
   
     peek() {
-      if (this.isEmpty()) return null;
-      return this.queue[0];
+        if (this.isEmpty()) return null;
+        return this.queue[0];
     }
   
     isEmpty() {
-      return this.queue.length === 0;
+        return this.queue.length === 0;
     }
   
     size() {
-      return this.queue.length;
+        return this.queue.length;
     }
   
     clear() {
-      this.queue = [];
+        this.queue = [];
     }
 
     at(index) {

@@ -1,13 +1,16 @@
-const Utils = require('./Utils/UtilsLoader.js')();
 const Events = require('./Events.js');
-const Logs = require('./Utils/Logs.js');
 const VoiceClient = require('./Voice/VoiceClient.js');
 const Intents = require('./Constants/Intents.js');
-const { ClosestMatch } = require('@musicmaker/simplicity');
 const OPCode = require('./Constants/OPCodes.js');
+const ClosestMatch = require('./Utils/ClosestMatch.js');
+const Logs = require('./Utils/Logs.js');
+const FormatIntents = require('./Utils/FormatIntents.js');
+const RegisterCommands = require('./Utils/RegisterCommands.js');
 
 // Object with all cache classes
 let Cache = require('./Utils/CacheLoader.js')();
+
+let _token = '';
 
 module.exports = class Client extends Events {
     constructor(options) {
@@ -16,21 +19,18 @@ module.exports = class Client extends Events {
 
         ValidateOptions(options);
 
-        this._token = options.token;
-        this.applicationID = options.applicationID ?? null;
-        this.intents = Utils.FormatIntents(options.intents);
+        _token = options.token;
+        this.clientID = options.clientID;
+        this.intents = FormatIntents(options.intents);
         this.user = new Object(null);
         this._currentlyLoggedIn = false;
 
-        this.API_METHOD = options.API_METHOD || 'rest';
         this.API = new Object(null);
 
         this.startTimestamp = null;
 
         // bitwise AND : 0111 & 0100 = 0100
-        this.voice = this.intents & Intents.Voice
-            ? new VoiceClient(this)
-            : null;
+        this.voice = new VoiceClient(this);
 
         this.guilds = new Cache.Guilds(this, options.maxCacheSize);
         this.channels = new Cache.Channels(this, options.maxCacheSize);
@@ -44,27 +44,31 @@ module.exports = class Client extends Events {
         this.statusMessage = null;
         this.activities = [];
 
+        this.commands = new Map();
+        this.buttons = new Map();
+        this.selectMenus = new Map();
+        this.modals = new Map();
+        this.contextMenus = new Map();
+
+        this.cache = new Map();
+
         if (options.token) this.login(options.token);
     }
 
     async login(token) {
         // if none is provided, use the one from the constructor
-        if (!token) token = this._token;
+        token = token ?? _token;
         if (!token) throw new Error('No token provided');
-
-        this._token = token;
 
         if (this._currentlyLoggedIn) return new Error('Client is already logged in');
         this._currentlyLoggedIn = true;
 
-        this.API = /(https?)/i.test(this.API_METHOD)
-            ? new (require('./Clients/HTTPSClient.js'))(this)
-            : new (require('./Clients/RESTClient.js'))(this);
+        this.API = new (require('./WSClient.js'))(this, token);
 
         this.emit('debug', 'Logging in...');
         this.startTimestamp = Date.now();
         
-        await this.API.login(token);
+        await this.API.login();
 
         this.emit('debug', 'Logged in');
     }
@@ -122,13 +126,33 @@ module.exports = class Client extends Events {
         }));
     }
 
+    async setStatusMessage(message) {
+        if (typeof message !== 'string') throw new TypeError('Status message must be a string, received ' + typeof message);
+        this.statusMessage = message;
+        this.activities = [{
+            name: 'i just need literally any string here xD',
+            state: message,
+            type: 4
+        }]
+
+        await this.API.websocket.send(JSON.stringify({
+            op: OPCode.PRESENCE_UPDATE,
+            d: {
+                since: null,
+                activities: this.activities,
+                status: this.status,
+                afk: false
+            }
+        }));
+    }
+
     /*
-    await client.setStatusMessage('Playing', 'with Simplicity');
-    await client.setStatusMessage('Listening', 'to Simplicity');
-    await client.setStatusMessage('Watching', 'Simplicity');
-    await client.setStatusMessage('Streaming', 'Simplicity', 'https://twitch.tv/simplicity');
+    await client.setActivity('Streaming with Simplicity', 'https://twitch.tv/monstercat');
+    await client.setActivity('Playing Rocket League');
+    await client.setActivity('Listening to Spotify');
+    await client.setActivity('Watching YouTube Together');
     */
-    async setStatusMessage(type, message, url) {
+    async setActivity(message, url) {
         /*
         0	Game	Playing {name}	"Playing Rocket League"
         1	Streaming	Streaming {details}	"Streaming Rocket League"
@@ -147,34 +171,26 @@ module.exports = class Client extends Events {
             'competing': 5
         }
 
-        if (typeof type !== 'string') throw new TypeError('Status type must be a string, received ' + typeof type);
-        type = type.toLowerCase();
-
-        if (typeof message !== 'string') throw new TypeError('Status message must be a string, received ' + typeof message);
-        if (url && typeof url !== 'string') throw new TypeError('Status URL must be a string, received ' + typeof url);
-
-        if (typeof typeList[type] !== 'number') {
-            let closestMatch = ClosestMatch(type, Object.keys(typeList));
-            Logs.warn(`Unknown status type "${type}" - Closest match: "${closestMatch}"`);
-            type = closestMatch;
+        if (typeof message !== 'string') throw new TypeError('Activity message must be a string, received ' + typeof message);
+        if (url) {
+            if (typeof url !== 'string') throw new TypeError('Activity url must be a string, received ' + typeof url);
+            if (!url.startsWith('https://')) throw new TypeError('Activity url must be a valid url');
+            if (!(url.includes('youtube.com') || url.includes('twitch.tv'))) throw new TypeError('Activity url must be a valid youtube or twitch url');
         }
 
-        if (type === 'streaming') {
-            if (!url) throw new Error('Streaming status must have a URL');
-            if (!['youtube', 'twitch'].includes(url.split('.')[1])) throw new Error('Streaming URL must be from YouTube or Twitch');
-            if (!url.startsWith('https://')) url = 'https://' + url;
+        const activity = message.split(/ +/g);
+        let type = typeList[activity.shift().toLowerCase()];
+        if (type === undefined) {
+            let closestMatch = ClosestMatch(activity, Object.keys(typeList));
+            Logs.warn(`Unknown activity "${activity}" - Closest match: "${closestMatch}"`);
+            type = typeList[closestMatch];
         }
-
-        if (!message) throw new Error('Status message must be provided');
-        if (message.length > 128) throw new Error('Status message must be under 128 characters');
 
         this.activities = [{
-            type: typeList[type],
-            name: message,
-            url: url
+            name: activity.join(' '),
+            type: type,
+            url: url || null
         }];
-
-        this.statusMessage = message;
 
         await this.API.websocket.send(JSON.stringify({
             op: OPCode.PRESENCE_UPDATE,
@@ -186,6 +202,43 @@ module.exports = class Client extends Events {
             }
         }));
 
+    }
+
+
+
+    /*
+    await client.registerCommands([
+        new SlashCommand({
+            name: 'ping',
+            description: 'Pong!'
+        }),
+        ...
+    ]);
+
+    await client.registerCommands(client.commands (map object) );
+    */
+    async registerCommands(...commands) {
+        if (!this.clientID) throw new Error('Client ID is required to register commands, set it in client options!');
+        if (!_token) throw new Error('Bot token it required to register commands, set it in client options!');
+
+        let guildID = undefined;
+        if (typeof commands[commands.length - 1] === 'string') {
+            guildID = commands.pop();
+        }
+
+        if (commands.some(c => typeof c !== 'object')) throw new TypeError('Commands must only be objects or instance of the SlashCommand class');
+
+        // if no commands, use client.commands and convert it to an array. Error if client.commands is empty
+        if (commands.length === 0) {
+            if (this.commands.size === 0) throw new Error('No commands provided');
+            commands = [...this.commands.values()];
+        }
+
+        return await RegisterCommands(commands, {
+            token: _token,
+            clientID: this.clientID,
+            guildID: guildID
+        });
     }
 
 }
@@ -201,10 +254,10 @@ function ValidateOptions(options) {
         options.token = options.token.match(tokenRegex)[0];
     }
 
-    if (options.applicationID) {
-        if (typeof options.applicationID !== 'string') throw new TypeError('Client ID must be a string, received ' + typeof options.applicationID);
-        let applicationIDRegex = /[\d]{17,}/;
-        if (!options.applicationID.match(applicationIDRegex)) throw new TypeError('Client ID must be a valid application ID');
+    if (options.clientID) {
+        if (typeof options.clientID !== 'string') throw new TypeError('Client ID must be a string, received ' + typeof options.clientID);
+        let clientIDRegex = /[\d]{17,}/;
+        if (!options.clientID.match(clientIDRegex)) throw new TypeError('Client ID must be a valid application ID');
     }
 
     if (!options.intents) {
@@ -223,14 +276,5 @@ function ValidateOptions(options) {
         if (typeof options.maxCacheSize !== 'number') throw new TypeError('Client max cache size must be a number, received ' + typeof options.maxCacheSize);
         if (options.maxCacheSize < 0) throw new TypeError('Client max cache size must be a positive number');
         if (options.maxCacheSize > 1_000) Logs.warn('Client max cache size is over 1,000 - Note that with more servers this can eat up a lot of memory. Use at your own risk.');
-    }
-
-    if (options.API_METHOD) {
-        if (typeof options.API_METHOD !== 'string') throw new TypeError('Client API method must be a string, received ' + typeof options.API_METHOD);
-        options.API_METHOD = options.API_METHOD.toLowerCase();
-        if (!['http', 'https', 'rest'].includes(options.API_METHOD)) {
-            Logs.warn('Client API method must be HTTPS or REST - Using default: REST');
-            options.API_METHOD = 'rest';
-        }
     }
 }
