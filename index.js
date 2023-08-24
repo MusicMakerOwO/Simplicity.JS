@@ -4,9 +4,9 @@ exports.Events = require('./Events.js');
 
 
 // ---------[ Utilities ]---------
-exports.Utils = require('./Utils/UtilsLoader.js')();
 exports.Log = require('./Utils/Logs.js');
 exports.ClosestMatch = require('./Utils/ClosestMatch.js');
+exports.RegisterCommands = require('./Utils/RegisterCommands.js')
 
 
 // ---------[ Components ]---------
@@ -15,9 +15,6 @@ exports.Embed = require('./Builders/Embed.js');
 exports.Button = require('./Builders/Button.js');
 exports.SelectMenu = require('./Builders/SelectMenu.js');
 exports.SelectMenuOption = require('./Builders/SelectMenuOption.js');
-
-exports.Modal = require('./Builders/Modal.js');
-exports.ModalQuestion = require('./Builders/ModalQuestion.js');
 
 
 

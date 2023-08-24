@@ -1,5 +1,5 @@
-module.exports = class BaseCommand {
-    constructor() {
+module.exports = class BaseOption {
+    constructor(type) {
         this.name = 'base';
         this.description = 'Base option';
         this.options = [];
@@ -8,9 +8,9 @@ module.exports = class BaseCommand {
     setName(name) {
         if (typeof name !== 'string') throw new Error('Invalid option name - Must be a string');
 
-        const nameRegex = /^[a-zA-Z0-9_-]+$/;
+        const nameRegex = /^[a-z0-9_-]+$/;
         if (!nameRegex.test(name)) {
-            throw new Error('Invalid option name - Only alphanumeric characters, dashes, and underscores are allowed');
+            throw new Error('Invalid option name - Only lowercase letters, dashes, and underscores are allowed');
         }
 
         if (name.length < 1 || name.length > 32) {
@@ -45,6 +45,20 @@ module.exports = class BaseCommand {
         for (const option of this.options) {
             if (typeof option.toJSON !== 'function') throw new Error('Invalid option - Must be a valid option');
             options.push(option.toJSON());
+        }
+
+        // check if options has any subcommands
+        let subCommands = options.filter(o => o.type === 1);
+        for (let subCommand of subCommands) {
+            if (subCommand.options.length > 25) throw new Error('Invalid options - Must be less than 25 options');
+            if (subCommand.options.some(o => o.type === 1)) throw new Error('Invalid options - Subcommands cannot contain subcommands, use a subcommand group instead!');
+            if (subCommand.options.some(o => o.type === 2)) throw new Error('Invalid options - Subcommands cannot contain subcommand groups, subcommands can only contain options!');
+        }
+
+        let subCommandGroups = options.filter(o => o.type === 2);
+        for (let group of subCommandGroups) {
+            if (group.options.length > 25) throw new Error('Invalid options - Must be less than 25 options');
+            if (group.options.some(o => o.type !== 1)) throw new Error('Invalid options - Subcommand groups cannot contain subcommands, use a subcommand instead!');
         }
 
         return {

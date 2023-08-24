@@ -14,7 +14,7 @@ module.exports = class BaseCache extends SizeLimitedMultiKeyMap {
 
         // check if already cached
         if (this.has(...data)) {
-            return this.get(...data);
+            return super.get(...data);
         }
 
         if (options.cache === false) {

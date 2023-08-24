@@ -13,10 +13,10 @@ module.exports = class SubCommandGroup extends BaseCommand {
                 throw new Error('Invalid option - Missing toJSON() method');
             }
 
-            if (option.type !== 2) {
-                throw new Error('Invalid option - Subcommand groups can only contain subcommands');
+            if (option.type === 2) {
+                throw new Error('Invalid option - Subcommand groups cannot contain subcommand groups, only subcommands');
             }
-            
+
             options.push(option.toJSON());
         }
 

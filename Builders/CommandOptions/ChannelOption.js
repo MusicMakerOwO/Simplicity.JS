@@ -11,7 +11,7 @@ module.exports = class ChannelOption extends BaseOption {
     setChannelTypes(...channel_types) {
         for (const channel_type of channel_types) {
             if (Array.isArray(channel_type)) {
-                return this.setChannelTypes(...channel_type);
+                return this.setChannelTypes(channel_type);
             }
 
             if (!ChannelTypes[channel_type]) {

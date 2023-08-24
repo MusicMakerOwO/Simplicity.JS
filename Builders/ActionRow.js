@@ -15,7 +15,7 @@ module.exports = class ActionRowBuilder {
     addComponents(...components) {
         for (let component of components) {
             if (Array.isArray(component)) {
-                return this.addComponents(...component);
+                this.addComponents(component);
             }
 
             if (this.components.length >= 5) {

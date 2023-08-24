@@ -63,7 +63,7 @@ module.exports = class StringOption extends BaseOption {
     setChoices(...choices) {
         for (let choice of choices) {
             if (Array.isArray(choice)) {
-                return this.setChoices(...choice);
+                return this.setChoices(choices);
             }
 
             if (this.choices.length >= 25) {

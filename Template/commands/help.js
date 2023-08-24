@@ -1,4 +1,4 @@
-const { SlashCommand, Embed} = require('@musicmaker/simplicity');
+const { SlashCommand, Embed } = require('@musicmaker/simplicity');
 
 module.exports = {
     data: new SlashCommand()

@@ -34,21 +34,21 @@ data: new SlashCommand()
 
 const BaseCommand = require('./BaseCommand.js');
 const Permission = require('../../Constants/Permission.js');
-const closestMatch = require('../../Utils/closestMatch.js');
-const logs = require('../../Utils/logs.js');
-const lang = require('../../Constant/language.js');
+const closestMatch = require('../../Utils/ClosestMatch.js');
+const logs = require('../../Utils/Logs.js');
+//const lang = require('../../Constants/language.js');
 module.exports = class SlashCommand extends BaseCommand {
     constructor() {
         super();
-        this.dmPermissions = false;
+        this.dmPermission = false;
         this.defaultPermission = 0;
         this.descriptionLocalizations = {};
         this.nsfw = false;
     }
     
-    setDmPermissions(permission) {
+    setDmPermission(permission) {
         if (typeof permission !== 'boolean') throw new Error('Invalid DM permissions - Must be a boolean(True or False)');
-        this.dmPermissions = permission;
+        this.dmPermission = permission;
         return this;
     }
 
@@ -99,10 +99,24 @@ module.exports = class SlashCommand extends BaseCommand {
             }
             options.push(option.toJSON());
         }
+
+
+        // cannot mix options with subcommands or subcommand groups
+        if (options.some(o => o.type === 1 || o.type === 2)) {
+            if (options.some(o => o.type > 2)) {
+                throw new Error('Invalid options - You cannot mix subcommands or subcommand groups with other options');
+            }
+        }
+        
         return {
             name: this.name,
             description: this.description,
-            options: options
+            options: options,
+            default_permission: this.defaultPermission,
+            type: 1,
+            description_localizations: this.descriptionLocalizations,
+            nsfw: this.nsfw,
+            dm_permission: this.dmPermission
         };
     }
 

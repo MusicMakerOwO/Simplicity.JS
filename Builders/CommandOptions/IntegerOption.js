@@ -4,7 +4,7 @@ module.exports = class IntegerOption extends BaseOption {
     constructor() {
         super();
         this.type = 4;
-        this.max_value = 2 ** 53;
+        this.max_value = (2 ** 53);
         this.min_value = -(2 ** 53);
         this.autocomplete = false;
         this.choices = [];
@@ -41,7 +41,7 @@ module.exports = class IntegerOption extends BaseOption {
     setChoices(...choices) {
         for (let choice of choices) {
             if (Array.isArray(choice)) {
-                return this.setChoices(...choice);
+                return this.setChoices(choice);
             }
 
             if (this.choices.length >= 25) {

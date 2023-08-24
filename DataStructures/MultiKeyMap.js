@@ -99,25 +99,19 @@ module.exports = class MultiKeyMap extends Map {
     find (callback) {
         if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
         let allData = this.AllData();
-        let data = allData.find(d => callback(d.value, d.key));
-        if (data.length > 0) return data;
-        return undefined;
+        return allData.find(d => callback(d.value, d.key));
     }
 
     filter (callback) {
         if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
         let allData = this.AllData();
-        let data = allData.filter(d => callback(d.value, d.key));
-        if (data.length > 0) return data;
-        return undefined;
+        return allData.filter(d => callback(d.value, d.key));
     }
 
     map (callback) {
         if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
         let allData = this.AllData();
-        let data = allData.map(d => callback(d.value, d.key));
-        if (data.length > 0) return data;
-        return undefined;
+        return allData.map(d => callback(d.value, d.key));
     }
 
     forEach (callback) {

@@ -32,7 +32,11 @@ client.registerCommands(client.commands);
 
 // Hacker voice: I'm in
 client.on('ready', async () => {
-    Log.success(`Logged in as ${client.user.tag}!`);
+    Log.success(`Logged in as ${client.user.username}!`);
+
+    await client.setStatus('idle');
+    await client.setStatusMessage('😀 Welcome to Simplicity!');
+    await client.setActivity('Listening to music...', 'https://twitch.tv/monstercat');
 });
 
 
@@ -89,4 +93,12 @@ client.on('command', async (interaction) => {
     } catch (e) {
         Log.error(e);
     }
+});
+
+
+
+// Prefer the DJS interactionCreate? No problem!
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isCommand()) return;
+    // ...
 });
