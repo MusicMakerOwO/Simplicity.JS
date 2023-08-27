@@ -1,4 +1,6 @@
-module.exports = class MultiKeyMap extends Map {
+const ExtendedMap = require('./ExtendedMap.js');
+
+module.exports = class MultiKeyMap extends ExtendedMap {
     constructor(options = {}) {
         super();
         if (options.seperator && typeof options.seperator !== 'string') throw new TypeError('Seperator must be a string');
@@ -94,30 +96,6 @@ module.exports = class MultiKeyMap extends Map {
         if (data.length === 0) return false;
         data.forEach(d => super.delete(d.key));
         return true;
-    }
-
-    find (callback) {
-        if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
-        let allData = this.AllData();
-        return allData.find(d => callback(d.value, d.key));
-    }
-
-    filter (callback) {
-        if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
-        let allData = this.AllData();
-        return allData.filter(d => callback(d.value, d.key));
-    }
-
-    map (callback) {
-        if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
-        let allData = this.AllData();
-        return allData.map(d => callback(d.value, d.key));
-    }
-
-    forEach (callback) {
-        if (typeof callback !== 'function') throw new TypeError('Callback must be a function');
-        let allData = this.AllData();
-        allData.forEach(d => callback(d.value, d.key));
     }
 
 };
