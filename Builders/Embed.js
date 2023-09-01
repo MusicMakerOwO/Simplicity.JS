@@ -55,9 +55,8 @@ function parseColor(color) {
             if (color.startsWith("#")) {
                 color = color.slice(1).replace(/[_ ]/, "");
                 if (color.length >= 6) color = parseInt(color.slice(0, 6), 16);
-                else if (color.length == 3) color = parseColor(`#${color.repeat(2)}`);
-                else if (color.length == 2) color = parseColor(`#${color.repeat(3)}`);
-                else throw new RangeError(`Invalid hex color (expected length 2, 3 or 6, found ${color.length})`);
+                else if (color.length == 3) color = parseColor(`#${color.split("").map(a => a.repeat(2)).join("")}`);
+                else throw new RangeError(`Invalid hex color (expected length 3 or 6, found ${color.length})`);
                 
             } else if (color.startsWith("rgb(") || color.startsWith("rgba(")) {
                 color = color.replace(/[_ )]|(rgb\()|(rgba\()/, "").split(",").slice(0, 3).map(l => parseInt(l.trim())).map((n, i) => n << ((2 - i) * 8)).reduce((a, b) => a + b, 0);
