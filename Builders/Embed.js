@@ -49,6 +49,47 @@ function parseDimensions(width = 0, height = 0, type) {
     if (height < 0 || height > 4096) throw new RangeError(`${type} height must be between 0 and 4096`);
 }
 
+function parseColor(color) {
+    switch (typeof color) {
+        case 'string':
+            if (color.startsWith("#")) {
+                color = color.slice(1).replace(/[_ ]/, "");
+                if (color.length >= 6) color = parseInt(color.slice(0, 6), 16);
+                else if (color.length == 3) color = parseColor(`#${color.split("").map(a => a.repeat(2)).join("")}`);
+                else throw new RangeError(`Invalid hex color (expected length 3 or 6, found ${color.length})`);
+                
+            } else if (color.startsWith("rgb(") || color.startsWith("rgba(")) {
+                color = color.replace(/[_ )]|(rgb\()|(rgba\()/, "").split(",").slice(0, 3).map(l => parseInt(l.trim())).map((n, i) => n << ((2 - i) * 8)).reduce((a, b) => a + b, 0);
+            } else {
+                if (colors[color.toLowerCase()]) color = colors[color.toLowerCase()];
+                else {
+                    if (color.includes(",")) color = parseColor(`rgb(${color})`);
+                    if (/^[0-9a-fA-F][0-9a-fA-F_]*$/.test(color)) color = parseColor(`#${color}`);
+                    else throw new RangeError('Color must be a valid hex color, rgb string, rgba string or color name');
+                }
+            }
+            break;
+        case 'number':
+            if (color < 0 || color > 0xffffff) throw new RangeError('Color must be a valid color code');
+            break;
+        case 'array':
+            if (color.length !== 3) throw new RangeError('Color array must be 3 elements long');
+            if (color.some(c => c < 0 || c > 255)) throw new RangeError('Color array elements must be between 0 and 255');
+            color = (color[0] << 16) + (color[1] << 8) + color[2];
+            break;
+        case 'object':
+            const red = color[Object.keys(color).find(k => ["r", "red"].includes(k.toLowerCase()))];
+            const green = color[Object.keys(color).find(k => ["g", "green"].includes(k.toLowerCase()))];
+            const blue = color[Object.keys(color).find(k => ["b", "blue"].includes(k.toLowerCase()))];
+            if ([red, green, blue].some(c => c < 0 || c > 255)) throw new RangeError("Color object elements must be between 0 and 255");
+            if (!red || !green || !blue) throw new RangeError('Color object must have "red", "green" and "blue" value');
+            color = (red << 16) + (green << 8) + blue;
+            break;
+        default:
+            throw new TypeError('Color must be a string, number, object or array - Received ' + typeof color);
+    }
+    return color;
+}
 
 module.exports = class EmbedBuilder {
     constructor() {
@@ -112,24 +153,9 @@ module.exports = class EmbedBuilder {
     }
 
     setColor(color) {
-        switch (typeof color) {
-            case 'string':
-                if (!colors[color.toLowerCase()]) throw new RangeError('Color must be a valid color name');
-                color = colors[color.toLowerCase()];
-                break;
-            case 'number':
-                if (color < 0 || color > 0xffffff) throw new RangeError('Color must be a valid color code');
-                break;
-            case 'array':
-                if (color.length !== 3) throw new RangeError('Color array must be 3 elements long');
-                if (color.some(c => c < 0 || c > 255)) throw new RangeError('Color array elements must be between 0 and 255');
-                color = (color[0] << 16) + (color[1] << 8) + color[2];
-                break;
-            default:
-                throw new TypeError('Color must be a string, number, or array - Received ' + typeof color);
-        }
-
-        this.embed.color = color;
+        if (typeof color == "boolean" && color) this.embed.color = Math.floor(Math.random() * 0xffffff) + 1; // random color
+        else if (typeof color == "boolean") return this; // false, no color change at all
+        else this.embed.color = parseColor(color); // parse color
         return this;
     }
 
