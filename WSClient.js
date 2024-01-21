@@ -1,25 +1,23 @@
-const OPCodes = require('./Constants/OPCodes.js');
 const ws = require('ws');
-const Log = require('./Utils/Logs.js');
-const Format = require('./Utils/Format.js');
-const EventHandler = require('./Utils/EventHandler.js');
-const GatewayErrors = require('./Constants/GatewayErrors.js');
-const ErrorCodes = require('./Constants/ErrorCodes.js');
 const HTTPS = require('https');
-const Intent = require('./Constants/Intents.js');
 
-let _token = null;
-let headers = {};
+const EventDispatcher = require('./EventDispatcher.js');
 
-module.exports = class RESTManager {
+const GatewayErrors = require('./Constants/GatewayErrors.js');
+const Log = require('./Utils/Logs.js');
+const OPCodes = require('./Constants/OPCodes.js');
+
+const WSError = require('./Errors/WSError.js');
+
+module.exports = class WSManager {
+
+    #client = null;
+    #token = null;
+
     constructor(client, token) {
-        this.client = client;
-
-        _token = token;
-        headers = {
-            "Authorization": `Bot ${_token}`,
-            "Content-Type": "application/json"
-        };
+        this.#client = client;
+        this.#token = token;
+        this.eventDispatcher = new EventDispatcher(client);
 
         this._seq = null;
 
@@ -27,63 +25,37 @@ module.exports = class RESTManager {
         this.connectedAt = null;
 
         this.websocket = null;
+
+        this._rateLimitUntil = 0;
+        this._lastDisconnect = 0;
     }
 
     #emitRaw(data) {
-        this.client.emit('raw', data);
+        this.#client.emit('raw', data);
     }
 
     #emitDebug(message) {
-        this.client.emit('debug', message);
+        this.#client.emit('debug', message);
     }
 
     #emitError(error) {
-        this.client.emit('error', error);
+        this.#client.emit('error', error);
     }
 
     #emitWarning(warning) {
-        this.client.emit('warn', warning);
+        this.#client.emit('warn', warning);
     }
 
-    #sendError(data) {
-        let d = null;
-        try {
-            d = JSON.parse(data);
-        } catch (err) {
-            this.#emitError(err.stack);
-        }
-        
-        this.#emitError(d || data);
-
-        let error = ErrorCodes[d.code];
-        if (!error) error = 'Unknown error';
-
-        Log.error(JSON.stringify(d, null, 4));
-
-        const lines = error.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-            if (i === lines.length - 1) {
-                Log.error( new Error(lines[i]).stack.replace('Error: ', '') );
-            } else {
-                Log.error(lines[i]);
-            }
-        }
-
-        return null;
-    }
-
-
-
-    async login(token) {
+    async login(token = this.#token) {
 
         this.#emitDebug('Logging in...');
 
         this.websocket = new ws('wss://gateway.discord.gg/?v=11&encoding=json');
 
-
         this.websocket.on('open', () => {
             this.connected = true;
-            this.#emitDebug('Opened this.websocket');
+            this.connectedAt = Date.now();
+            this.#emitDebug('Opened websocket');
         });
 
         this.websocket.on('message', async (data) => {
@@ -98,12 +70,12 @@ module.exports = class RESTManager {
                     this.websocket.send(JSON.stringify({
                         op: OPCodes.IDENTIFY,
                         d: {
-                            token: _token,
+                            token: token,
                             properties: {
                                 os: process.platform,
                                 device: 'Simplicity',
                             },
-                            intents: this.client.intents
+                            intents: this.#client.intents
                         }
                     }));
                 case OPCodes.HEARTBEAT:
@@ -114,7 +86,7 @@ module.exports = class RESTManager {
                             op: OPCodes.HEARTBEAT,
                             d: this._seq
                         }));
-                    }, data.d.heartbeat_interval * Math.random());
+                    }, data.d.heartbeat_interval * ((Math.random() * 0.5) + 0.5));
                     this.#emitDebug('Received HEARTBEAT');
                 case OPCodes.HEARTBEAT_ACK:
                     this.#emitDebug('Received HEARTBEAT_ACK');
@@ -124,75 +96,9 @@ module.exports = class RESTManager {
                     break;
                 case OPCodes.DISPATCH:
                     this.#emitDebug(`Received DISPATCH ${data.t}`);
-                    switch (data.t) {
-                        case 'READY':
-                            this.client.connectedAt = new Date();
-                            this.client.user = data.d.user;
-                            this.#emitDebug(`Logged in as ${this.client.user.username}#${this.client.user.discriminator}`);
-
-                            this.client.emit('ready', this.client.user);
-                            break;
-                        case 'GUILD_CREATE':
-                            // Don't emit this event if the client logged in less than 5 seconds ago
-                            if (Date.now() - this.client.startTimestamp < 2000) {
-                                this.client.guilds.set(data.d.id, data.d);
-                                for (const channel of data.d.channels) {
-                                    this.client.channels.set(data.d.id, channel.id,
-                                        Object.assign(channel, { guildID: data.d.id })
-                                    );
-                                }
-                                for (const emoji of data.d.emojis) {
-                                    this.client.emojis.set(data.d.id, emoji.id,
-                                        {
-                                            ...emoji,
-                                            guildID: data.d.id,
-                                            url: `https://cdn.discordapp.com/emojis/${emoji.id}.${emoji.animated ? 'gif' : 'png'}?size=1024`
-                                        }
-                                    );
-                                }
-                                for (const role of data.d.roles) {
-                                    this.client.roles.set(data.d.id, role.id,
-                                        Object.assign(role, { guildID: data.d.id })
-                                    );
-                                }
-                                for (const sticker of data.d.stickers) {
-                                    this.client.stickers.set(data.d.id, sticker.id,
-                                        {
-                                            ...sticker,
-                                            guildID: data.d.id,
-                                            url: `https://cdn.discordapp.com/stickers/${sticker.id}.${sticker.format}?size=1024`
-                                        }
-                                    );
-                                }
-                                // bitwise AND : 0111 & 0010 = 0010
-                                if (this.client.intents & Intent.GuildMembers) {
-                                    try {
-                                        let members = await this.getBulk(`/guilds/${data.d.id}/members`);
-                                        for (const member of members) {
-                                            this.client.members.set(data.d.id, member.user.id,
-                                                Object.assign(member, { guildID: data.d.id })
-                                            );
-                                        }
-                                    } catch (err) {
-                                        this.#emitError(err.stack);
-                                    }
-                                }
-                                return;
-                            }
-                            return this.client.emit('guildCreate', await Format.guild(data.d));
-                        case 'GUILD_DELETE':
-                            return this.client.emit('guildDelete', await Format.guild(data.d));
-                        case 'GUILD_UPDATE':
-                            this.client.guilds.set(data.d.id, data.d);
-                            return this.client.emit('guildUpdate', await Format.guild(data.d));
-                        // for voice information, check Simplicity/Voice/VoiceClient.js
-                        default:
-                            return await EventHandler(this.client, data.t, data.d);
-                    }
-                    break;
+                    return this.eventDispatcher.emit(data.t, data.d);
                 default:
                     console.log(data.toString());
-                    //data = JSON.parse(data.toString());
                     this.#emitDebug(`Received UNKNOWN OPCODE ${data.op}`);
                     break;
             }
@@ -208,245 +114,145 @@ module.exports = class RESTManager {
             this.#emitDebug(`Closed Websocket with code ${code} and reason ${reason || 'No reason'}`);
 
             this.connected = false;
+            this.connectedAt = null;
 
-            let error = GatewayErrors[code];
-            if (!error) error = 'Unknown error';
+            const errorData = GatewayErrors[code] ?? GatewayErrors['null'];
 
-            // split on each line and print them
-            const lines = error.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                // if the last line, throw it as an error
-                if (i === lines.length - 1) {
-                    Log.error( new Error(lines[i]).stack.replace('Error: ', '') );
-                } else {
-                    Log.error(lines[i]);
+            Log.error( new Error(`[${errorData.title}] ${errorData.message}`) );
+
+            this.#client.emit('disconnect', code, reason);
+
+            if (!errorData.reconnect) {
+                Log.error('Error is not recoverable - Aborting...');
+                process.exit(1);
+            } else {
+                // if the last disconnect was less than 30 seconds ago, don't reconnect
+                if (this._lastDisconnect + (1000 * 30) > Date.now()) {
+                    throw new Error('Reconnect loop detected, not reconnecting - Last disconnect was less than 30 seconds ago');
                 }
+
+                this.#emitDebug('Reconnecting...');
+                this.#emitWarning('Reconnecting...');
+                this._lastDisconnect = Date.now();
+                this.login(token);
             }
-
-            
-
-            // Kill the connection and exit
-            process.exit(1);
         });
 
     }
 
 
 
-    async get(route) {
-        if (!this.connected) throw new Error('Client is not connected');
+    async emit(method, route, data, additionalHeaders = {}) {
 
         if (this._rateLimitUntil > Date.now()) {
             return null;
         }
 
-        return new Promise((resolve, reject) => {
-            HTTPS.get(`https://discord.com/api/v10${route}`, {
-                headers,
-                method: 'GET'
-            }, (res) => {
-                let data = '';
+        const web = HTTPS.request(`https://discord.com/api/v10${route}`, {
+            headers: {
+                "Authorization": `Bot ${this.#token}`,
+                "Content-Type": "application/json",
+                ...additionalHeaders
+            },
+            method
+        }, (res) => {
+            let returnedData = '';
 
-                res.on('data', (chunk) => {
-                    data += chunk;
-                });
+            res.on('data', (chunk) => {
+                returnedData += chunk;
+            });
 
-                res.on('end', async () => {
-                    if (res.statusCode !== 200) {
-                        return this.#sendError(data);
-                    }
+            res.on('end', async () => {
+                if (res.statusCode >= 400) {
+                    this.#emitDebug(`Sending ${method} request to https://discord.com/api/v10${route}`);
+                    this.#emitDebug(data);
+                    throw new WSError(route, res, returnedData);
+                }
 
-                    this.#emitDebug(`Received ${res.statusCode} from ${route}`);
-                    this.#emitRaw(data);
+                this.#emitDebug(`Received ${res.statusCode} from ${route}`);
+                this.#emitRaw(returnedData);
 
-                    let d = {};
-                    try {
-                        d = JSON.parse(data);
-                    } catch (err) {
-                        this.#emitError(err.stack);
-                        return reject(err);
-                    }
+                return Parse(returnedData);
+            });
 
-                    return resolve(d);
-                });
-
-                res.on('error', (err) => {
-                    this.#emitError(err.stack);
-                    return reject(err);
-                });
-                
-            }, (err) => {
+            res.on('error', (err) => {
                 this.#emitError(err.stack);
-                return reject(err);
+                throw new Error(route, res.statusCode, returnedData);
             });
+
+        }, (err) => {
+            this.#emitError(err.stack);
+            return reject(err);
         });
-    }
 
-
-
-    async getBulk(route) {
-        if (!this.connected) throw new Error('Client is not connected');
-
-        if (this._rateLimitUntil > Date.now()) {
-            return null;
-        }
-
-        return new Promise((resolve, reject) => {
-            HTTPS.get(`https://discord.com/api/v10${route}?limit=1000`, {
-                headers,
-                method: 'GET'
-            }, (res) => {
-                let data = '';
-
-                res.on('data', (chunk) => {
-                    data += chunk;
-                });
-
-                res.on('end', async () => {
-                    if (res.statusCode !== 200) {
-                        return this.#sendError(data);
-                    }
-
-                    this.#emitDebug(`Received ${res.statusCode} from ${route}`);
-                    this.#emitRaw(data);
-
-                    let d = {};
-                    try {
-                        d = JSON.parse(data);
-                    } catch (err) {
-                        this.#emitError(err.stack);
-                        return reject(err);
-                    }
-
-                    if (Array.isArray(d)) {
-                        for (const member of d) {
-                            // copy member.user to member
-                            for (const key in member.user) {
-                                member[key] = member.user[key];
-                            }
-                        }
-                    } else {
-                        for (const key in d.user) {
-                            d[key] = d.user[key];
-                        }
-                    }
-
-                    return resolve(d);
-                });
-
-                res.on('error', (err) => {
-                    this.#emitError(err.stack);
-                    return reject(err);
-                });
-
-            }, (err) => {
-                this.#emitError(err.stack);
-                return reject(err);
-            });
-        });
-    }
-
-
-
-    async post(route, data, method = 'POST') {
-        if (!this.connected) throw new Error('Client is not connected');
-
-        if (this._rateLimitUntil > Date.now()) {
-            return null;
-        }
-
-        return new Promise((resolve, reject) => {
-            // https post request
-            const req = HTTPS.request(`https://discord.com/api/v10${route}`, {
-                headers,
-                method: method
-            }, (res) => {
-                let data = '';
-
-                res.on('data', (chunk) => {
-                    data += chunk;
-                });
-
-                res.on('end', async () => {
-                    if (res.statusCode !== 200) {
-                        return this.#sendError(data);
-                    }
-
-                    this.#emitDebug(`Received ${res.statusCode} from ${route}`);
-                    this.#emitRaw(data);
-
-                    let d = {};
-                    try {
-                        d = JSON.parse(data);
-                    } catch (err) {
-                        this.#emitError(err.stack);
-                    }
-
-                    return resolve(d);
-                });
-
-                res.on('error', (err) => {
-                    this.#emitError(err.stack);
-                    return reject(err);
-                });
-            });
-
-            req.write(JSON.stringify(data));
-            req.end();
-        });
-    }
-
-
-    async edit(route, data) {
-        if (!this.connected) throw new Error('Client is not connected');
-
-        if (this._rateLimitUntil > Date.now()) {
-            return null;
-        }
-
-        return new Promise((resolve, reject) => {
-            const web = HTTPS.request(`https://discord.com/api/v10${route}`, {
-                headers,
-                method: 'PATCH'
-            }, (res) => {
-                let data = '';
-
-                res.on('data', (chunk) => {
-                    data += chunk;
-                });
-
-                res.on('end', async () => {
-                    if (res.statusCode !== 200) {
-                        return this.#sendError(data);
-                    }
-
-                    this.#emitDebug(`Received ${res.statusCode} from ${route}`);
-                    this.#emitRaw(data);
-
-                    let d = {};
-                    try {
-                        d = JSON.parse(data);
-                    } catch (err) {
-                        this.#emitError(err.stack);
-                    }
-
-                    return resolve(d);
-                });
-
-                res.on('error', (err) => {
-                    this.#emitError(err.stack);
-                    return reject(err);
-                });
-
-            }, (err) => {
-                this.#emitError(err.stack);
-                return reject(err);
-            });
-
+        if (['POST', 'PATCH', 'PUT'].includes(method)) {
+            this.#emitRaw(data);
             web.write(JSON.stringify(data));
+        }
 
-            web.end();
-        });
+        web.end();
+
     }
 
 };
+
+
+
+function Parse(data = null) {
+    /*
+    "{"some":"data"}" -> { some: 'data' }
+    "hello" -> 'hello'
+    "123" -> 123
+    "{"some":"data" -> Error
+    */
+    
+    if (typeof data === 'object') return data;
+    if (data === null) return null;
+
+    if (!CheckSyntax(data)) throw new Error('Invalid JSON Syntax - Aborting...');
+
+    try {
+        return JSON.parse(data);
+    } catch (err) {
+        return data;
+    }
+}
+
+function CheckSyntax(data) {
+    const syntax = [];
+
+    for (const char of data) {
+        /*
+        ( -> )
+        [ -> ]
+        { -> }
+        " -> "
+        */
+
+        if (['[', '{', '"'].includes(char)) {
+            syntax.push(char);
+        }
+
+        if ([']', '}', '"'].includes(char)) {
+            const last = syntax.pop();
+            if (last === undefined) {
+                return false;
+            }
+
+            if (last === '[' && char !== ']') {
+                return false;
+            }
+
+            if (last === '{' && char !== '}') {
+                return false;
+            }
+
+            if (last === '"' && char !== '"') {
+                return false;
+            }
+        }
+
+    }
+
+    return syntax.length === 0;
+}

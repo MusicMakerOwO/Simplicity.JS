@@ -15,8 +15,4 @@ module.exports = class RoleOption extends BaseOption {
         }
     }
 
-    build() {
-        return this.toJSON();
-    }
-
 }

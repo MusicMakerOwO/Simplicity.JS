@@ -1,4 +1,6 @@
-module.exports = class SizeLimitedMap extends Map {
+const ExtendedMap = require('./ExtendedMap.js');
+
+module.exports = class SizeLimitedMap extends ExtendedMap {
     constructor(maxSize = Infinity) {
         super();
         this.maxSize = maxSize;

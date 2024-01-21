@@ -16,18 +16,79 @@
 */
 
 module.exports = {
-    4000: "Something went wrong on Discord's end. Try reconnecting?",
-    4001: "Discord has terminated this connection with 4001.\nIf you see this, please report it to the Simplicity Support server.",
-    4002: 'You sent an invalid payload to Discord. Don\'t do that!',
-    4003: 'Wait to connect before you try to use the bot!',
-    4004: 'Your token is invalid, please check you have set it corretly and try again',
-    4005: 'You tried to login twice, how do you expect that to work?',
-    4007: 'Invalid sequence, please reconnect and try again - Report this to the Simplicity Support server if it continues!',
-    4008: 'You got rate limited, come back in a few hours!',
-    4009: 'Your session timed out, please reconnect and try again!',
-    4010: 'Invalid shard, please reconnect and try again - Report this to the Simplicity Support server if it continues!',
-    4011: 'Your bot is in more than 2,500 servers, sharding is required to connect due to Discord.',
-    4012: 'Invalid API version - Report this to the Simplicity Support server if it continues!',
-    4013: 'Invalid intent(s) - I am impressed if you managed to get this one...',
-    4014: 'It seems you are using intents that Discord has not allowed you to use.\n(message content, guild members, or guild presence/status)'
+    'null': {
+        title: 'Unknown error (null)',
+        message: 'Something went wrong and we aren\'t sure what. Try reconnecting?',
+        reconnect: true,
+    },
+    4000: {
+        title: 'Unknown error',
+        message: "Something went wrong on Discord's end. Try reconnecting?",
+        reconnect: true,
+    },
+    4001: {
+        title: 'Unknown opcode',
+        message: "Discord has terminated this connection with 4001.\nIf you see this, please report it to the Simplicity Support server.",
+        reconnect: false,
+    },
+    4002: {
+        title: 'Decode error',
+        message: 'You sent an invalid payload to Discord. Don\'t do that!',
+        reconnect: false,
+    },
+    4003: {
+        title: 'Not authenticated',
+        message: 'Wait to connect before you try to use the bot!',
+        reconnect: false,
+    },
+    4004: {
+        title: 'Authentication failed',
+        message: 'Your token is invalid, please check you have set it corretly and try again',
+        reconnect: false,
+    },
+    4005: {
+        title: 'Already authenticated',
+        message: 'You tried to login twice, how do you expect that to work?',
+        reconnect: false,
+    },
+    4007: {
+        title: 'Invalid seq',
+        message: 'Invalid sequence, please reconnect and try again - Report this to the Simplicity Support server if it continues!',
+        reconnect: false,
+    },
+    4008: {
+        title: 'Rate limited',
+        message: 'You got rate limited, come back in a few hours!',
+        reconnect: false,
+    },
+    4009: {
+        title: 'Session timed out',
+        message: 'Your session timed out, please reconnect and try again!',
+        reconnect: true,
+    },
+    4010: {
+        title: 'Invalid shard',
+        message: 'Invalid shard, please reconnect and try again - Report this to the Simplicity Support server if it continues!',
+        reconnect: false,
+    },
+    4011: {
+        title: 'Sharding required',
+        message: 'Your bot is in more than 2,500 servers, sharding is required to connect due to Discord.',
+        reconnect: false,
+    },
+    4012: {
+        title: 'Invalid API version',
+        message: 'Invalid API version - Report this to the Simplicity Support server if it continues!',
+        reconnect: false,
+    },
+    4013: {
+        title: 'Invalid intent(s)',
+        message: 'Invalid intent(s) - I am impressed if you managed to get this one...',
+        reconnect: false,
+    },
+    4014: {
+        title: 'Disallowed intent(s)',
+        message: 'It seems you are using intents that Discord has not allowed you to use.,\n(message content, guild members, or guild presence/status)',
+        reconnect: false
+    }
 }

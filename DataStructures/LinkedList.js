@@ -27,7 +27,7 @@ module.exports = class LinkedList {
         for (let i = 0; i < index; i++) {
             node = node.next;
         }
-        let newNode = new Node(data);
+        const newNode = new Node(data);
         newNode.next = node.next;
         node.next = newNode;
         this.length++;
@@ -39,7 +39,7 @@ module.exports = class LinkedList {
         for (let i = 0; i < index - 1; i++) {
             node = node.next;
         }
-        let newNode = new Node(data);
+        const newNode = new Node(data);
         newNode.next = node.next;
         node.next = newNode;
         this.length++;
@@ -79,14 +79,14 @@ module.exports = class LinkedList {
         for (let i = 0; i < index - 1; i++) {
             node = node.next;
         }
-        let removedNode = node.next;
+        const removedNode = node.next;
         node.next = removedNode.next;
         this.length--;
         return removedNode.data;
     }
 
     shift() {
-        let removedNode = this.head;
+        const removedNode = this.head;
         this.head = this.head.next;
         this.length--;
         return removedNode.data;
@@ -97,7 +97,7 @@ module.exports = class LinkedList {
         for (let i = 0; i < this.length - 2; i++) {
             node = node.next;
         }
-        let removedNode = node.next;
+        const removedNode = node.next;
         node.next = null;
         this.tail = node;
         this.length--;
@@ -111,7 +111,7 @@ module.exports = class LinkedList {
     }
 
     toArray() {
-        let arr = [];
+        const arr = [];
         let node = this.head;
         while (node) {
             arr.push(node.data);
@@ -125,7 +125,7 @@ module.exports = class LinkedList {
         return {
             next: () => {
                 if (!node) return { done: true };
-                let value = node.data;
+                const value = node.data;
                 node = node.next;
                 return { value, done: false };
             }

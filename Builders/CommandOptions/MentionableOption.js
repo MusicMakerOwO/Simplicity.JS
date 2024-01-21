@@ -15,8 +15,4 @@ module.exports = class MentionableOption extends BaseOption {
         }
     }
 
-    build() {
-        return this.toJSON();
-    }
-
 }

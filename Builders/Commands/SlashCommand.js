@@ -45,24 +45,39 @@ module.exports = class SlashCommand extends BaseCommand {
         this.descriptionLocalizations = {};
         this.nsfw = false;
     }
+
+    static isValid(command) {
+        if (command instanceof SlashCommand) return true;
+
+        if (!BaseCommand.isValid(command)) return false;
+
+        if (command.type !== 1) return false;
+        if (typeof command.default_permission !== 'boolean') return false;
+        if (typeof command.dm_permission !== 'boolean') return false;
+        if (typeof command.nsfw !== 'boolean') return false;
+        if (typeof command.description_localizations !== 'object') return false;
+
+        return true;
+    }
     
     setDmPermission(permission) {
         if (typeof permission !== 'boolean') throw new Error('Invalid DM permissions - Must be a boolean(True or False)');
-        this.dmPermission = permission;
+        this.dmPermission = Boolean(permission);
         return this;
     }
 
     setDefaultPermission(...permissions) {
         if (permissions.length === 0) throw new Error('Invalid default permissions - Must be a permission or an array of permissions');
-        const PermissionBitField = 0
-        for (let permission of permissions) {
+        permissions = permissions.flat(Infinity);
+        let PermissionBitField = 0
+        for (const permission of permissions) {
             if (typeof permission !== "string") throw new Error('Invalid default permissions - Must be a permission or an array of permissions');
             if (!Permission[permission]) {
-                let closest = closestMatch(permission, Object.keys(Permission));
-                logs.warn(`Invalid default permission ${permission} - Did you mean ${closest}?`);
-                PermissionBitField = PermissionBitField | Permission[closest];
+                const closest = closestMatch(permission, Object.keys(Permission));
+                logs.warn(`Invalid permission ${permission} - Did you mean ${closest}?`);
+                PermissionBitField |= Permission[closest];
             } else {
-                PermissionBitField = PermissionBitField | Permission[permission];
+                PermissionBitField |= Permission[permission];
             }
         }
         this.defaultPermission = PermissionBitField;
@@ -71,19 +86,23 @@ module.exports = class SlashCommand extends BaseCommand {
 
     setNsfw(nsfw) {
         if (typeof nsfw !== 'boolean') throw new Error('Invalid NSFW - Must be a boolean(True or False)');
-        this.nsfw = nsfw;
+        this.nsfw = Boolean(nsfw);
         return this;
     }
 
     setLanguage(...languages) {
         if (languages.length === 0) throw new Error('Invalid language - Must be a language or an array of languages');
-        for (let language of languages) {
+        languages = languages.flat(Infinity);
+        for (let i = 0; i < languages.length; i++) {
+            const language = languages[i];
             if (typeof language === 'object') {
-                for (let key in language) {
-                    this.descriptionLocalizations[closestMatch(key, Object.keys(lang))] = languages[key];
+                for (const key in language) {
+                    const closest = closestMatch(key, Object.keys(lang));
+                    this.descriptionLocalizations[closest] = language[key];
                 }
             } else if (typeof language === 'string') {
-                this.descriptionLocalizations[language] = languages[1];
+                this.descriptionLocalizations[language] = languages[i + 1];
+                i++;
             } else {
                 throw new Error('Invalid language - Must be a language or an array of languages');
             }
@@ -92,14 +111,7 @@ module.exports = class SlashCommand extends BaseCommand {
     }
 
     toJSON() {
-        let options = [];
-        for (let option of this.options) {
-            if (typeof option.toJSON !== 'function') {
-                throw new Error('Invalid option - Missing toJSON() method');
-            }
-            options.push(option.toJSON());
-        }
-
+        const options = this.options.map(o => typeof o.toJSON === 'function' ? o.toJSON() : o);
 
         // cannot mix options with subcommands or subcommand groups
         if (options.some(o => o.type === 1 || o.type === 2)) {
@@ -118,9 +130,5 @@ module.exports = class SlashCommand extends BaseCommand {
             nsfw: this.nsfw,
             dm_permission: this.dmPermission
         };
-    }
-
-    build() {
-        return this.toJSON();
     }
 }

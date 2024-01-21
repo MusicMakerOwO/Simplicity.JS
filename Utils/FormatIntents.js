@@ -8,17 +8,14 @@ module.exports = (intents) => {
 
     let intentsBitfield = 0;
 
-    for (let intent of intents) {
+    for (const intent of intents) {
         if (!IntentList[intent]) {
-            let closestMatch = ClosestMatch(intent, Object.keys(IntentList));
+            const closestMatch = ClosestMatch(intent, Object.keys(IntentList));
             Log.warn(`Unknown intent "${intent}" - Closest match: "${closestMatch}"`);
             intentsBitfield |= IntentList[closestMatch];
         }
         intentsBitfield |= IntentList[intent]; // bitwise OR : 0001 | 0100 = 0101
     }
 
-    // enable guilds by default
-    intentsBitfield |= IntentList.Guilds;
-
-    return intentsBitfield;
+    return intentsBitfield |= IntentList.Guilds;
 }

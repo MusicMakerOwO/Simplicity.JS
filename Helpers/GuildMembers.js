@@ -1,8 +1,9 @@
 const { SizeLimitedMap } = require("../DataStructures/SizeLimitedMap.js");
+let _client = null;
 
 module.exports = class GuildMembers {
     constructor(client, guild, members) {
-        this.client = client;
+        _client = client;
         this.guild = guild;
         this.cache = members;
     }
@@ -12,7 +13,7 @@ module.exports = class GuildMembers {
 
         let member = this.cache.find(member => member.user.id === userID);
         if (!member) {
-            member = await this.client.members.get(this.guild.id, userID);
+            member = await _client.members.get(this.guild.id, userID);
             if (!member) return null;
             
             this.cache.push(member);

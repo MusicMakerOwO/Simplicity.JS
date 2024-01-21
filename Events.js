@@ -3,78 +3,108 @@ const Logs = require('./Utils/Logs.js');
 const ClosestMatch = require('./Utils/ClosestMatch.js');
 
 module.exports = class Events {
+
     constructor() {
+
         this._events = new Map();
-    }
-
-    addListener(event, listener, maxUsages = Infinity) {
-        if (!EventList[event]) {
-            let closestMatch = ClosestMatch(event, Object.keys(EventList));
-            Logs.warn(`Unknown event "${event}" - Closest match: "${EventList[closestMatch]}"`);
-            event = EventList[closestMatch];
+        /*
+        {
+            /event/: [
+                {
+                    function: function,
+                    maxUses: number,
+                }
+            ],
+            /event2/: [
+                {
+                    function: function,
+                    maxUses: number,
+                }
+            ]
+            ...
         }
-        if (!this._events.has(event)) this._events.set(event, []);
-        this._events.get(event).push({ listener, maxUsages });
+        */
     }
 
-    on(event, listener, maxUsages = Infinity) {
-        this.addListener(event, listener, maxUsages);
+    #ConvertRegex(name) {
+        return name instanceof RegExp ? name : new RegExp(`^${name}$`);
     }
 
-    once(event, listener) {
-        this.on(event, listener, 1);
+    // client.on('event', (args) => { ... })
+    // client.on(/regex/, (args) => { ... })
+    on(name, maxUses, callback) {
+
+        if (typeof maxUses === 'function') {
+            callback = maxUses;
+            maxUses = Infinity;
+        }
+
+        if (typeof name === 'string') {
+            const closest = ClosestMatch(name, Object.keys(EventList));
+            if (closest !== name) {
+                Logs.warn(`Unknown event "${name}" - Closest match: "${closest}"`);
+            }
+            name = EventList[closest];
+        }
+
+        name = this.#ConvertRegex(name);
+
+        if (!this._events.has(name)) {
+            this._events.set(name, []);
+        }
+
+        if (typeof callback !== 'function') {
+            throw new Error('Callback must be a function');
+        }
+
+        if (typeof maxUses !== 'number') {
+            throw new Error('maxUses must be a number');
+        }
+
+        this._events.get(name).push({
+            callback,
+            maxUses
+        });
     }
 
-    emit(event, ...args) {
-        if (!this._events.has(event)) return;
-        for (let listener of this._events.get(event)) {
-            listener.listener(...args);
-            if (listener.maxUsages === 1) this.removeListener(event, listener);
-            listener.maxUsages--;
+    async emit(name, ...args) {
+        for (const [ regex, callbacks ] of this._events) {
+            if (!regex.test(`${name}`)) continue;
+            for (const event of callbacks) {
+                await event.callback(...args);
+                event.maxUses--;
+                if (event.maxUses <= 0) {
+                    this._events.get(`${regex}`).splice(this._events.get(`${regex}`).indexOf(event.callback), 1);
+                }
+            }
+        }
+
+    }
+
+    clearEvents(name = null) {
+        if (name === null) {
+            this._events.clear();
+        } else {
+            name = this.#ConvertRegex(name);
+            this._events.delete(name);
         }
     }
 
-    removeEvent(event, listener) {
-        if (!this._events.has(event)) return;
-        this._events.set(event, this._events.get(event).filter(l => l.listener !== listener));
-    }
-
-    clearEvent(event) {
-        if (!this._events.has(event)) return;
-        this._events.set(event, []);
-    }
-
-    clearAllEvents() {
-        this._events.clear();
-    }
-
-    countEvents(event) {
-        if (!this._events.has(event)) return 0;
-        return this._events.get(event).length;
-    }
-
-    listAllEvents() {
-        this.listAllListeners();
-    }
-
-    listAllListeners() {
-        let listeners = {};
-        for (let [event, listenersArray] of this._events) {
-            listeners[event] = listenersArray;
+    getEvents(name = null) {
+        if (name === null) {
+            const events = {};
+            for (const [ name, callbacks ] of this._events) {
+                events[name] = callbacks;
+            }
+            return events;
+        } else {
+            name = this.#ConvertRegex(name);
+            return this._events.get(`${name}`) ?? [];
         }
-        return listeners;
     }
 
-    allEvents() {
-        return this.listAllListeners();
-    }
-
-    removeListener(event, listener) {
-        this.removeEvent(event, listener);
-    }
-
-    removeAllEvents() {
-        this.clearAllEvents();
+    getNames() {
+        return [...this._events.keys()];
     }
 
 }

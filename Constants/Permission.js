@@ -45,209 +45,56 @@ USE_EXTERNAL_SOUNDS	0x0000200000000000 (1 << 45)	Allows the usage of custom soun
 SEND_VOICE_MESSAGES	0x0000400000000000 (1 << 46)	Allows sending voice message*/
 
 module.exports = {
-    CreateInstantInvite: 1 << 0,
-    CreateInvite: 1 << 0,
-    InstantInvite: 1 << 0,
+    None: 0n,
 
-    KickMembers: 1 << 1,
-    KickUsers: 1 << 1,
-    Kick: 1 << 1,
+    createInvite: 1n << 0n,
+    kickMembers: 1n << 1n,
+    banMembers: 1n << 2n,
+    admin: 1n << 3n,
+    manageChannels: 1n << 4n,
+    manageGuild: 1n << 5n,
+    addReactions: 1n << 6n,
+    viewAuditLog: 1n << 7n,
+    prioritySpeaker: 1n << 8n,
+    stream: 1n << 9n,
+    viewChannel: 1n << 10n,
+    sendMessages: 1n << 11n,
+    sendTTS: 1n << 12n,
+    manageMessages: 1n << 13n,
+    embedLinks: 1n << 14n,
+    attachFiles: 1n << 15n,
+    readMessageHistory: 1n << 16n,
+    mentionEveryone: 1n << 17n,
+    useExternalEmojis: 1n << 18n,
+    viewGuildInsights: 1n << 19n,
+    connect: 1n << 20n,
+    speak: 1n << 21n,
+    muteMembers: 1n << 22n,
+    deafenMembers: 1n << 23n,
+    moveMembers: 1n << 24n,
+    useVAD: 1n << 25n,
+    changeNickname: 1n << 26n,
+    manageNicknames: 1n << 27n,
+    manageRoles: 1n << 28n,
+    manageWebhooks: 1n << 29n,
+    manageGuildExpressions: 1n << 30n,
+    useApplicationCommands: 1n << 31n,
+    requestToSpeak: 1n << 32n,
+    manageEvents: 1n << 33n,
+    manageThreads: 1n << 34n,
+    createPublicThreads: 1n << 35n,
+    createPrivateThreads: 1n << 36n,
+    useExternalStickers: 1n << 37n,
+    sendMessagesInThreads: 1n << 38n,
+    useEmbeddedActivities: 1n << 39n,
+    muteMembers: 1n << 40n,
+    viewCreatorMonetizationAnalytics: 1n << 41n,
+    useSoundboard: 1n << 42n,
+    useExternalSounds: 1n << 45n,
+    sendVoiceMessages: 1n << 46n,
 
-    BanMembers: 1 << 2,
-    BanUsers: 1 << 2,
-    Ban: 1 << 2,
-
-    Administrator: 1 << 3,
-    Admin: 1 << 3,
-
-    ManageChannels: 1 << 4,
-    EditChannels: 1 << 4,
-    CreateChannels: 1 << 4,
-    DeleteChannels: 1 << 4,
-    ManageChannel: 1 << 4,
-    EditChannel: 1 << 4,
-    CreateChannel: 1 << 4,
-    DeleteChannel: 1 << 4,
-
-    ManageGuild: 1 << 5,
-    EditGuild: 1 << 5,
-    ManageServer: 1 << 5,
-    EditServer: 1 << 5,
-
-    AddReactions: 1 << 6,
-    React: 1 << 6,
-    
-    ViewAuditLog: 1 << 7,
-    AuditLog: 1 << 7,
-    ViewAudit: 1 << 7,
-
-    PrioritySpeaker: 1 << 8,
-    PriorityVoice: 1 << 8,
-
-    Stream: 1 << 9,
-    GoLive: 1 << 9,
-    ShareScreen: 1 << 9,
-
-    ViewChannel: 1 << 10,
-    ReadChannel: 1 << 10,
-
-    SendMessages: 1 << 11,
-
-    SendTTSMessage: 1 << 12,
-    SendTTS: 1 << 12,
-    TTSMessage: 1 << 12,
-    TTS: 1 << 12,
-
-    ManageMessages: 1 << 13,
-    EditMessages: 1 << 13,
-    DeleteMessages: 1 << 13,
-    PinMessages: 1 << 13,
-
-    EmbedLinks: 1 << 14,
-    Embed: 1 << 14,
-    SendGif: 1 << 14,
-    SendGifs: 1 << 14,
-    
-    AttachFiles: 1 << 15,
-    SendFiles: 1 << 15,
-    SendAttachments: 1 << 15,
-    SendImages: 1 << 15,
-    SendPictures: 1 << 15,
-
-    ReadMessageHistory: 1 << 16,
-    ReadHistory: 1 << 16,
-    ViewHistory: 1 << 16,
-    MessageHistory: 1 << 16,
-
-    MentionEveryone: 1 << 17,
-    MentionHere: 1 << 17,
-    MentionAll: 1 << 17,
-
-    UseExternalEmojis: 1 << 18,
-    ExternalEmojis: 1 << 18,
-
-    ViewGuildInsights: 1 << 19,
-    ViewInsights: 1 << 19,
-    Insights: 1 << 19,
-
-    Connect: 1 << 20,
-    JoinVoice: 1 << 20,
-    JoinVoiceChannel: 1 << 20,
-    JoinVoiceChat: 1 << 20,
-    JoinVC: 1 << 20,
-
-    Speak: 1 << 21,
-    SpeakInVoice: 1 << 21,
-    SpeakInVoiceChannel: 1 << 21,
-    SpeakInVoiceChat: 1 << 21,
-    SpeakInVC: 1 << 21,
-
-    MuteMembersVoice: 1 << 22,
-    MuteMembersVoiceChat: 1 << 22,
-    MuteMembersVoiceChannel: 1 << 22,
-    MuteMembersVC: 1 << 22,
-
-    DeafenMembersVoice: 1 << 23,
-    DeafenMembersVoiceChat: 1 << 23,
-    DeafenMembersVoiceChannel: 1 << 23,
-    DeafenMembersVC: 1 << 23,
-
-    MoveMembersVoice: 1 << 24,
-    MoveMembersVoiceChat: 1 << 24,
-    MoveMembersVoiceChannel: 1 << 24,
-    MoveMembersVC: 1 << 24,
-
-    UseVoiceActivityDetection: 1 << 25,
-    UseVAD: 1 << 25,
-    VAD: 1 << 25,
-
-    ChangeNickname: 1 << 26,
-    ChangeNick: 1 << 26,
-    Nickname: 1 << 26,
-    Nick: 1 << 26,
-
-    ManageNicknames: 1 << 27,
-    ManageNicks: 1 << 27,
-    EditNicknames: 1 << 27,
-    EditNicks: 1 << 27,
-    
-    ManageRoles: 1 << 28,
-    EditRoles: 1 << 28,
-    CreateRoles: 1 << 28,
-    DeleteRoles: 1 << 28,
-    
-    ManageWebhooks: 1 << 29,
-    EditWebhooks: 1 << 29,
-    CreateWebhooks: 1 << 29,
-    DeleteWebhooks: 1 << 29,
-
-    ManageGuildExpressions: 1 << 30,
-    EditGuildExpressions: 1 << 30,
-    CreateGuildExpressions: 1 << 30,
-    DeleteGuildExpressions: 1 << 30,
-    CreateAutomod: 1 << 30,
-    ManageAutomod: 1 << 30,
-    EditAutomod: 1 << 30,
-    DeleteAutomod: 1 << 30,
-
-    UseApplicationCommands: 1 << 31,
-    UseSlashCommands: 1 << 31,
-    UseSlash: 1 << 31,
-    UseBotCommands: 1 << 31,
-    UseCommands: 1 << 31,
-
-    RequestToSpeak: 1 << 32,
-
-    ManageEvents: 1 << 33,
-    EditEvents: 1 << 33,
-    CreateEvents: 1 << 33,
-    DeleteEvents: 1 << 33,
-
-    ManageThreads: 1 << 34,
-    EditThreads: 1 << 34,
-    CreateThreads: 1 << 34,
-    DeleteThreads: 1 << 34,
-
-    CreatePublicThreads: 1 << 35,
-    CreateAnnouncementThreads: 1 << 35,
-    PublicThreads: 1 << 35,
-    AnnouncementThreads: 1 << 35,
-
-    CreatePrivateThreads: 1 << 36,
-    PrivateThreads: 1 << 36,
-
-    UseExternalStickers: 1 << 37,
-    ExternalStickers: 1 << 37,
-
-    SendMessagesInThreads: 1 << 38,
-    
-    UseEmbeddedActivities: 1 << 39,
-    UseActivities: 1 << 39,
-    StartVoiceActivity: 1 << 39,
-
-    ModerateMembers: 1 << 40,
-    ModerateUsers: 1 << 40,
-    TimeoutMembers: 1 << 40,
-    TimeoutUsers: 1 << 40,
-    Timeout: 1 << 40,
-
-    ViewCreatorMonetizationAnalytics: 1 << 41,
-    ViewMonetizationAnalytics: 1 << 41,
-    ViewAnalytics: 1 << 41,
-    ViewMonetization: 1 << 41,
-    ViewCreatorAnalytics: 1 << 41,
-
-    UseSoundboard: 1 << 42,
-
-    UseExternalSounds: 1 << 45,
-    ExternalSounds: 1 << 45,
-
-    SendVoiceMessages: 1 << 46,
-    VoiceMessages: 1 << 46,
 
     // 2^46 - 1
-    All: 0x7FFFFFFFFFFFF,
-    AllPermissions: 0x7FFFFFFFFFFFF,
-    AllPerms: 0x7FFFFFFFFFFFF,
+    All: 0x7FFFFFFFFFFFFn
 
 }

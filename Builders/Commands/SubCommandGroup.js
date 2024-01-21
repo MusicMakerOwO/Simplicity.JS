@@ -7,17 +7,14 @@ module.exports = class SubCommandGroup extends BaseCommand {
     }
 
     toJSON() {
-        let options = [];
-        for (let option of this.options) {
-            if (typeof option.toJSON !== 'function') {
-                throw new Error('Invalid option - Missing toJSON() method');
-            }
+        const options = this.options.map(o => typeof o.toJSON === 'function' ? o.toJSON() : o);
 
-            if (option.type === 2) {
-                throw new Error('Invalid option - Subcommand groups cannot contain subcommand groups, only subcommands');
-            }
+        if (options.length > 25) {
+            throw new Error('Invalid options - Must be less than 25 options');
+        }
 
-            options.push(option.toJSON());
+        if (options.some(o => o.type !== 1)) {
+            throw new Error('Invalid options - Subcommand groups can only contain subcommands, use a subcommand instead!');
         }
 
         return {
@@ -25,10 +22,6 @@ module.exports = class SubCommandGroup extends BaseCommand {
             description: this.description,
             options: options
         };
-    }
-
-    build() {
-        return this.toJSON();
     }
 
 }

@@ -61,7 +61,7 @@ module.exports = class StringOption extends BaseOption {
     )
     */
     setChoices(...choices) {
-        for (let choice of choices) {
+        for (const choice of choices) {
             if (Array.isArray(choice)) {
                 return this.setChoices(choices);
             }
@@ -103,6 +103,10 @@ module.exports = class StringOption extends BaseOption {
         return this;
     }
 
+    addChoice(name, value) {
+        return this.setChoices({name, value});
+    };
+
 
     toJSON() {
         return {
@@ -115,9 +119,5 @@ module.exports = class StringOption extends BaseOption {
             min_length: this.min_length,
             autocomplete: this.autocomplete
         }
-    }
-
-    build() {
-        return this.toJSON();
     }
 }
