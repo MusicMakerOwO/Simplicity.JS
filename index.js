@@ -10,11 +10,13 @@ exports.RegisterCommands = require('./Utils/RegisterCommands.js')
 
 
 // ---------[ Components ]---------
-exports.ActionRow = require('./Builders/ActionRow.js');
-exports.Embed = require('./Builders/Embed.js');
-exports.Button = require('./Builders/Button.js');
-exports.SelectMenu = require('./Builders/SelectMenu.js');
-exports.SelectMenuOption = require('./Builders/SelectMenuOption.js');
+exports.ActionRow = require('./Builders/Components/ActionRow.js');
+exports.Embed = require('./Builders/Components/Embed.js');
+exports.Button = require('./Builders/Components/Button.js');
+exports.SelectMenu = require('./Builders/Components/SelectMenu.js');
+exports.SelectMenuOption = require('./Builders/Components/SelectMenuOption.js');
+exports.Modal = require('./Builders/Components/Modal.js');
+exports.ModalQuestion = require('./Builders/Components/ModalQuestion.js');
 
 
 
@@ -44,8 +46,6 @@ exports.Choice = require('./Builders/OptionHelpers/Choice.js');
 exports.LinkedList = require('./DataStructures/LinkedList.js');
 exports.Queue = require('./DataStructures/Queue.js');
 exports.SizeLimitedMap = require('./DataStructures/SizeLimitedMap.js');
-exports.MultiKeyMap = require('./DataStructures/MultiKeyMap.js');
-exports.SizeLimitedMultiKeyMap = require('./DataStructures/SizeLimitedMultiKeyMap.js');
 
 
 
@@ -58,7 +58,7 @@ exports.GatewayCodes = require('./Constants/GatewayCodes.js');
 exports.GatewayErrors = require('./Constants/GatewayErrors.js');
 exports.Intents = require('./Constants/Intents.js');
 exports.OPCodes = require('./Constants/OPCodes.js');
-exports.OptionType = require('./Constants/OptionType.js');
+exports.OptionType = require('./Constants/OptionTypes.js');
 exports.Permission = require('./Constants/Permission.js');
 exports.VoiceErrors = require('./Constants/VoiceErrors.js');
 exports.VoiceOPCodes = require('./Constants/VoiceOPCodes.js');

@@ -1,10 +1,11 @@
 {
   "name": "@musicmaker/simplicity",
-  "version": "1.0.3b",
+  "version": "1.1.0-1",
   "description": "The last package you will ever need - What Discord.JS has failed to do",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "node install.js"
   },
   "repository": {
     "type": "git",

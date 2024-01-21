@@ -44,9 +44,4 @@ module.exports = class BaseOption {
             required: this.required
         };
     }
-
-    build() {
-        return this.toJSON();
-    }
-
 }

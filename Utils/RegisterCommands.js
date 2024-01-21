@@ -8,55 +8,39 @@ await RegisterCommands(...commands, {
     clientID: 'id'
 })
 */
-module.exports = async function (...commands) {
-    let options = commands.pop();
+module.exports = async function (commands, { token, clientID, guildID = null }) {
 
-    if (commands.length === 0) throw new Error(`Must provide token and client ID when registering - RegisterCommands(commands, { token: 'token', clientID: 'id' })`)
+    if (typeof clientID !== 'string') throw new Error('Client ID must be provided as a string');
+    if (typeof token !== 'string') throw new Error('Bot token must be provided as a string');
+    if (guildID && typeof guildID !== 'string') throw new TypeError();
 
-    if (typeof options.clientID !== 'string') throw new Error('Client ID must be provided as a string')
-    if (typeof options.token !== 'string') throw new Error('Bot token must be provided as a string')
-    if (options.guildID && typeof options.guildID !== 'string') throw new TypeError()
-
-    // Convert any maps into arrays
-    commands = commands.map(c => c instanceof Map ? [...c.values()] : c);
-
-    // Combine into one array and remove any duplicates
-    commands = commands.flat(Infinity);
-    commands = [...new Set(commands)];
+    commands.map(c => typeof c.toJSON === 'function' ? c.toJSON() : c);
 
     // Sanity check lol
     if (!Array.isArray(commands)) throw new TypeError('Commands must be an array, received ' + typeof commands);
     if (commands.some(c => typeof c !== 'object')) throw new TypeError('Commands must only be objects or instance of the SlashCommand class');
+
+    console.log(commands);
     
-    let nameList = [];
-    for (let command of commands) {
+    const nameList = [];
+    for (const command of commands) {
+        if (typeof command.name !== 'string') throw new TypeError(`Command name must be a string, received ${typeof command.name}`);
         if (nameList.includes(command.name)) throw new TypeError(`Command name "${command.name}" is already taken`);
         nameList.push(command.name);
     }
 
-    let url = options.guildID
-        ? `https://discord.com/api/v10/applications/${options.clientID}/guilds/${options.guildID}/commands`
-        : `https://discord.com/api/v10/applications/${options.clientID}/commands`
+    const url = guildID
+        ? `https://discord.com/api/v10/applications/${clientID}/guilds/${guildID}/commands`
+        : `https://discord.com/api/v10/applications/${clientID}/commands`;
 
-    
-    commands = commands.map(c => typeof c.toJSON === 'function' ? c.toJSON() : c);
-
-    let request = HTTPS.request(url, {
+    const request = HTTPS.request(url, {
             headers: {
-                "Authorization": `Bot ${options.token}`,
+                "Authorization": `Bot ${token}`,
                 "Content-Type": "application/json",
-                "User-Agent": "DiscordBot (https://www.simplicityjs.dev/, v1.1.0)"
+                "User-Agent": "DiscordBot (https://www.simplicityjs.dev/, v2.0.0)"
             },
             method: 'PUT'
         }, function (res) {
-
-            // let data = '';
-            //
-            // res.on('data', chunk => data += chunk);
-            //
-            // res.on('end', () => {
-            //     console.log(data)
-            // });
 
             if (res.statusCode === 429) {
                 return Logs.error(`You are being rate limited. Try again in ${res.headers['retry-after']} seconds`);
@@ -64,19 +48,23 @@ module.exports = async function (...commands) {
 
             if (res.statusCode !== 200 && res.statusCode !== 201) {
                 return Logs.error(`Hmm.. Seems Discord didn't like that. Status code: ${res.statusCode}`);
+            } else {
+                Logs.debug(`Successfully registered ${commands.length} commands`);
+                request.destroy();
             }
 
         }
     );
+
+    
+    request.write(JSON.stringify(commands));
+    
+    request.end();
 
     // exit after 10 secondes if no response
     request.setTimeout(10000, () => {
         request.destroy();
         Logs.error(`Request timed out after 10 seconds - Are you rate limited?`);
     });
-
-    request.write(JSON.stringify(commands));
-
-    request.end();
 
 }

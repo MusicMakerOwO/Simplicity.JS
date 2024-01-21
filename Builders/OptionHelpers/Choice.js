@@ -14,7 +14,7 @@ module.exports = class Choice {
         if (value) ValidateOption(value, 'value');
 
         this.name = name;
-        this.value = value || name.replace(/ +/g, '_')
+        this.value = value ?? name.replace(/ +/g, '_')
     }
 
     toString() {
@@ -25,10 +25,6 @@ module.exports = class Choice {
     }
 
     toJSON() {
-        return this.toString();
-    }
-
-    build() {
         return this.toString();
     }
     

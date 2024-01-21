@@ -33,8 +33,4 @@ module.exports = class ChannelOption extends BaseOption {
         }
     }
 
-    build() {
-        return this.toJSON();
-    }
-
 }

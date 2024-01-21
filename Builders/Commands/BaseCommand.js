@@ -1,8 +1,18 @@
-module.exports = class BaseOption {
+module.exports = class BaseCommand {
     constructor(type) {
-        this.name = 'base';
-        this.description = 'Base option';
+        this.name = 'my-command';
+        this.description = 'It does a thing, pretty cool';
         this.options = [];
+    }
+
+    static isValid(command = {}) {
+        if (command instanceof BaseCommand) return true;
+
+        if (typeof command.name !== 'string') return false;
+        if (typeof command.description !== 'string') return false;
+        if (!Array.isArray(command.options)) return false;
+
+        return true;
     }
 
     setName(name) {
@@ -40,25 +50,19 @@ module.exports = class BaseOption {
     }
 
     toJSON() {
-        let options = [];
+        const options = this.options.map(o => typeof o.toJSON === 'function' ? o.toJSON() : o);
 
-        for (const option of this.options) {
-            if (typeof option.toJSON !== 'function') throw new Error('Invalid option - Must be a valid option');
-            options.push(option.toJSON());
+        const subCommands = options.filter(o => o.type === 1);
+        for (let i = 0; i < subCommands.length; i++) {
+            if (subCommands[i].options.length > 25) throw new Error('Invalid options - Must be less than 25 options');
+            if (subCommands[i].options.some(o => o.type === 1)) throw new Error('Invalid options - Subcommands cannot contain subcommands, use a subcommand group instead!');
+            if (subCommands[i].options.some(o => o.type === 2)) throw new Error('Invalid options - Subcommands cannot contain subcommand groups, subcommands can only contain options!');
         }
 
-        // check if options has any subcommands
-        let subCommands = options.filter(o => o.type === 1);
-        for (let subCommand of subCommands) {
-            if (subCommand.options.length > 25) throw new Error('Invalid options - Must be less than 25 options');
-            if (subCommand.options.some(o => o.type === 1)) throw new Error('Invalid options - Subcommands cannot contain subcommands, use a subcommand group instead!');
-            if (subCommand.options.some(o => o.type === 2)) throw new Error('Invalid options - Subcommands cannot contain subcommand groups, subcommands can only contain options!');
-        }
-
-        let subCommandGroups = options.filter(o => o.type === 2);
-        for (let group of subCommandGroups) {
-            if (group.options.length > 25) throw new Error('Invalid options - Must be less than 25 options');
-            if (group.options.some(o => o.type !== 1)) throw new Error('Invalid options - Subcommand groups cannot contain subcommands, use a subcommand instead!');
+        const subCommandGroups = options.filter(o => o.type === 2);
+        for (let i = 0; i < subCommandGroups.length; i++) {
+            if (subCommandGroups[i].options.length > 25) throw new Error('Invalid options - Must be less than 25 options');
+            if (subCommandGroups[i].options.some(o => o.type !== 1)) throw new Error('Invalid options - Subcommand groups cannot contain subcommands, use a subcommand instead!');
         }
 
         return {
@@ -68,9 +72,4 @@ module.exports = class BaseOption {
         };
 
     }
-
-    build() {
-        return this.toJSON();
-    }
-
 }

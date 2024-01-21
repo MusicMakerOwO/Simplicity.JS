@@ -95,5 +95,7 @@ module.exports = {
 
     AutoModerationExecution: 1 << 21,
     AutoModExecution: 1 << 21,
-    AutoModExec: 1 << 21
+    AutoModExec: 1 << 21,
+
+    All: 0xFFFFFFFF
 };

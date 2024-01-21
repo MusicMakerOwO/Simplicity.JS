@@ -90,8 +90,4 @@ module.exports = class IntegerOption extends BaseOption {
             autocomplete: this.autocomplete
         };
     }
-
-    build() {
-        return this.toJSON();
-    }
 }

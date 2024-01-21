@@ -15,8 +15,4 @@ module.exports = class UserOption extends BaseOption {
         }
     }
 
-    build() {
-        return this.toJSON();
-    }
-
 }

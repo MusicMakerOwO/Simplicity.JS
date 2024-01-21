@@ -7,14 +7,12 @@ module.exports = {
 
     ready: 'ready',
     heartbeat: 'heartbeat',
-    tick: 'heartbeat',
     disconnect: 'disconnect',
     reconnect: 'reconnect',
     resume: 'resume',
     rateLimit: 'rateLimit',
 
     message: 'messageCreate',
-    messageSend: 'messageCreate',
     messageCreate: 'messageCreate',
     messageDelete: 'messageDelete',
     messageUpdate: 'messageUpdate',
@@ -50,7 +48,17 @@ module.exports = {
     userVoiceJoin: 'userVoiceJoin',
     memberVoiceJoin: 'userVoiceJoin',
     userVoiceLeave: 'userVoiceLeave',
-    memberVoiceLeave: 'userVoiceLeave'
+    memberVoiceLeave: 'userVoiceLeave',
+
+    interactionCreate: 'interactionCreate',
+    interaction: 'interactionCreate',
+    command: 'command',
+    button: 'button',
+    buttonClick: 'button',
+    selectMenu: 'selectMenu',
+    stringSelectMenu: 'selectMenu',
+    modal: 'modal',
+    modalSubmit: 'modal'
 };
 
 /*

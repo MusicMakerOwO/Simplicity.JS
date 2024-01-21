@@ -15,8 +15,4 @@ module.exports = class AttachmentOption extends BaseOption {
         }
     }
 
-    build() {
-        return this.toJSON();
-    }
-
 }
